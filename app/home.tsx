@@ -15,9 +15,9 @@ export default function HomeScreen() {
   const { alerts, setAlerts, setLoading } = useAlertStore();
 
   const handleLogout = () => {
-    Alert.alert("Keluar", "Yakin ingin keluar dari akun ini?", [
-      { text: "Batal", style: "cancel" },
-      { text: "Keluar", style: "destructive", onPress: logout },
+    Alert.alert("Logout", "Are you sure you want to log out of this account?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Logout", style: "destructive", onPress: logout },
     ]);
   };
   const [summary, setSummary] = useState<HomeSummary | null>(null);
@@ -30,7 +30,7 @@ export default function HomeScreen() {
       setSummary(data);
       setAlerts(data.recentAlerts);
     } catch (err) {
-      console.error("[Home] Gagal memuat data:", err);
+      console.error("[Home] Failed to load data:", err);
     } finally {
       setLoading(false);
     }
@@ -60,23 +60,23 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Top bar */}
+
         <View className="flex-row items-start justify-between pt-6 pb-2">
-          <GreetingHeader userName={user?.name ?? "Pengguna"} />
+          <GreetingHeader userName={user?.name ?? "User"} />
           <TouchableOpacity
             onPress={handleLogout}
             className="mt-1 px-3 py-1.5 rounded-2xl bg-white"
             style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}
           >
-            <Text className="text-sm text-eldora-text-muted font-medium">Keluar</Text>
+            <Text className="text-sm text-eldora-text-muted font-medium">Logout</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Device status */}
+
         {summary && summary.devices.length > 0 && (
           <View className="mt-5">
             <Text className="text-base font-semibold text-eldora-text mb-3">
-              Status Perangkat
+              Device Status
             </Text>
             {summary.devices.map((device) => (
               <DeviceStatusCard key={device.deviceId} device={device} />
@@ -84,11 +84,11 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Recent alerts */}
+
         <View className="mt-5">
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-base font-semibold text-eldora-text">
-              Alert Terbaru
+              Recent Alerts
             </Text>
             {summary && summary.unreadAlertCount > 0 && (
               <View className="bg-eldora-coral px-2.5 py-0.5 rounded-full">
@@ -103,10 +103,10 @@ export default function HomeScreen() {
             <Card className="items-center py-10">
               <Text className="text-4xl mb-3">✅</Text>
               <Text className="text-base font-semibold text-eldora-text mb-1">
-                Semua Aman
+                All Clear
               </Text>
               <Text className="text-sm text-eldora-text-muted text-center">
-                Tidak ada alert aktif saat ini
+                No active alerts at the moment
               </Text>
             </Card>
           ) : (

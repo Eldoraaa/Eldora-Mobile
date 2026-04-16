@@ -21,6 +21,10 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (!error.response) {
+      error.message = `Cannot reach backend at ${BASE_URL}. Make sure the API server is running and reachable from this device.`;
+    }
+
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
     }

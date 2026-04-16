@@ -3,6 +3,8 @@ export const BASE_URL =
 
 export const ENDPOINTS = {
   LOGIN: "/auth/login",
+  REGISTER: "/auth/register",
+  GOOGLE_LOGIN: "/auth/google",
   REGISTER_FCM: "/auth/register-fcm-token",
   HOME_SUMMARY: "/home/summary",
   ALERTS: "/alerts",

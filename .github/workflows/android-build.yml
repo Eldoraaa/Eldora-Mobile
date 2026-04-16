@@ -1,14 +1,7 @@
 name: Eldora Android APK Build
 
 on:
-  push:
-    branches:
-      - main
-
-permissions:
-  contents: write
-  id-token: write
-  actions: read
+  workflow_dispatch:
 
 jobs:
   build:
@@ -55,6 +48,7 @@ jobs:
         run: |
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "newArchEnabled=true" >> android/gradle.properties
 
       - name: Decode keystore
         run: |

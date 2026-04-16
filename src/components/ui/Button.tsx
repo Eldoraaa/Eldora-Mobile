@@ -19,7 +19,7 @@ export const Button = ({
   className,
 }: ButtonProps) => {
   const baseClass =
-    "rounded-3xl py-4 px-8 items-center justify-center min-h-[56px]";
+    "rounded-lg py-4 px-8 items-center justify-center min-h-[56px]";
 
   const variantClass = {
     primary: "bg-eldora-coral active:opacity-80",

@@ -23,7 +23,7 @@ export const DeviceStatusCard = ({ device }: DeviceStatusCardProps) => (
         <Text className="text-xs text-eldora-text-muted">
           {device.isOnline
             ? "Online"
-            : `Terakhir aktif: ${formatRelativeTime(device.lastSeen)}`}
+            : `Last seen: ${formatRelativeTime(device.lastSeen)}`}
         </Text>
       </View>
     </View>
@@ -37,7 +37,7 @@ export const DeviceStatusCard = ({ device }: DeviceStatusCardProps) => (
           device.isOnline ? "text-green-700" : "text-gray-500"
         }`}
       >
-        {device.isOnline ? "Aktif" : "Offline"}
+        {device.isOnline ? "Active" : "Offline"}
       </Text>
     </View>
   </Card>

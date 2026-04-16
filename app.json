@@ -23,7 +23,8 @@
         "backgroundColor": "#FDF8F5"
       },
       "package": "com.eldora.app",
-      "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -40,7 +41,10 @@
           "color": "#FF8A7A",
           "sounds": []
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin",
+      "expo-asset",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

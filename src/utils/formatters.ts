@@ -7,11 +7,11 @@ export function formatRelativeTime(isoString: string): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffSecs < 60) return "Baru saja";
-  if (diffMins < 60) return `${diffMins} menit lalu`;
-  if (diffHours < 24) return `${diffHours} jam lalu`;
-  if (diffDays === 1) return "Kemarin";
-  if (diffDays < 7) return `${diffDays} hari lalu`;
+  if (diffSecs < 60) return "Just now";
+  if (diffMins < 60) return `${diffMins} mins ago`;
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
 
   return date.toLocaleDateString("id-ID", {
     day: "numeric",
@@ -22,8 +22,8 @@ export function formatRelativeTime(isoString: string): string {
 
 export function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "Selamat Pagi";
-  if (hour < 15) return "Selamat Siang";
-  if (hour < 18) return "Selamat Sore";
-  return "Selamat Malam";
+  if (hour < 12) return "Good morning";
+  if (hour < 15) return "Good afternoon";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }

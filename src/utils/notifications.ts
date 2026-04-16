@@ -1,23 +1,54 @@
-import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-import Constants from "expo-constants";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Platform } from "react-native";
 import { apiClient } from "@/services/api";
 import { ENDPOINTS } from "@/constants/api";
 
-// Tampilkan notifikasi saat app di foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+type NotificationsModule = typeof import("expo-notifications");
+
+let notificationHandlerInitialized = false;
+
+function canUseNotificationsModule(): boolean {
+  return !(
+    Platform.OS === "web" ||
+    (Platform.OS === "android" &&
+      Constants.executionEnvironment === ExecutionEnvironment.StoreClient)
+  );
+}
+
+async function getNotificationsModule(): Promise<NotificationsModule | null> {
+  if (!canUseNotificationsModule()) {
+    return null;
+  }
+
+  const Notifications = await import("expo-notifications");
+
+  if (!notificationHandlerInitialized) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+    notificationHandlerInitialized = true;
+  }
+
+  return Notifications;
+}
 
 export async function registerFCMToken(): Promise<void> {
   if (!Device.isDevice) {
-    console.warn("[FCM] Harus menggunakan physical device");
+    console.warn("[FCM] Must use a physical device");
+    return;
+  }
+
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) {
+    console.warn(
+      "[FCM] Android push notifications are not available in Expo Go. Use a development build to register token."
+    );
     return;
   }
 
@@ -40,7 +71,7 @@ export async function registerFCMToken(): Promise<void> {
   }
 
   if (finalStatus !== "granted") {
-    console.warn("[FCM] Permission notifikasi ditolak");
+    console.warn("[FCM] Notification permission denied");
     return;
   }
 
@@ -49,7 +80,7 @@ export async function registerFCMToken(): Promise<void> {
     (Constants as any)?.easConfig?.projectId;
 
   if (!projectId) {
-    console.warn("[FCM] Project ID tidak ditemukan di app.json. Token tidak didaftarkan.");
+    console.warn("[FCM] Project ID not found in app.json. Token not registered.");
     return;
   }
 
@@ -59,28 +90,41 @@ export async function registerFCMToken(): Promise<void> {
     });
 
     await apiClient.post(ENDPOINTS.REGISTER_FCM, { fcmToken: expoPushToken });
-    console.log("[FCM] Token berhasil didaftarkan:", expoPushToken);
+    console.log("[FCM] Token registered successfully:", expoPushToken);
   } catch (err) {
-    console.error("[FCM] Gagal mendaftarkan token:", err);
+    console.error("[FCM] Failed to register token:", err);
   }
 }
 
 export function setupNotificationListeners(): () => void {
-  const receivedListener = Notifications.addNotificationReceivedListener(
-    (notification) => {
-      console.log("[FCM] Notifikasi diterima:", notification.request.content.title);
-    }
-  );
+  let receivedListener: { remove: () => void } | null = null;
+  let responseListener: { remove: () => void } | null = null;
+  let isActive = true;
 
-  const responseListener =
-    Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      console.log("[FCM] Notifikasi di-tap, data:", data);
-      // Fase 1: buka app di Home (default behavior)
-    });
+  void getNotificationsModule().then((Notifications) => {
+    if (!Notifications || !isActive) {
+      return;
+    }
+
+    receivedListener = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        console.log(
+          "[FCM] Notification received:",
+          notification.request.content.title
+        );
+      }
+    );
+
+    responseListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+        console.log("[FCM] Notification tapped, data:", data);
+      });
+  });
 
   return () => {
-    receivedListener.remove();
-    responseListener.remove();
+    isActive = false;
+    receivedListener?.remove();
+    responseListener?.remove();
   };
 }

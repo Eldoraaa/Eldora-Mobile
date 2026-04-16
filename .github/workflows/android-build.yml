@@ -79,20 +79,21 @@ jobs:
               }
           """
 
-          # Masukkan signingConfigs sebelum buildTypes
-          content = content.replace(
-              "    buildTypes {",
-              signing_config + "    buildTypes {",
-              1
-          )
-
-          # Terapkan ke buildTypes.release
+          # Terapkan signingConfig ke buildTypes.release DULU (sebelum signingConfigs diinsert)
+          # agar regex hanya mencocokkan satu 'release {' block (di buildTypes)
           content = re.sub(
               r'(release \{[^}]*?)(\})',
               r'\1            signingConfig signingConfigs.release\n        \2',
               content,
               count=1,
               flags=re.DOTALL
+          )
+
+          # Baru insert signingConfigs sebelum buildTypes
+          content = content.replace(
+              "    buildTypes {",
+              signing_config + "    buildTypes {",
+              1
           )
 
           with open("android/app/build.gradle", "w") as f:

@@ -22,6 +22,9 @@ jobs:
           distribution: "zulu"
           java-version: "17"
 
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
       - name: Create .env file
         run: |
           cat > .env << EOF
@@ -30,23 +33,18 @@ jobs:
           EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
           EOF
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Create google-services.json
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
 
-      - name: Clear Expo and Metro cache
+      - name: Clear cache and android folder
         run: |
-          rm -rf node_modules/.cache
-          rm -rf .expo
-          rm -rf /tmp/metro-*
-          rm -rf /tmp/haste-*
-          rm -rf android
+          rm -rf node_modules/.cache .expo /tmp/metro-* /tmp/haste-* android
 
-      - name: Generate Android folder with Expo Prebuild
-        run: npx expo prebuild --platform android --clean
-        env:
-          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
-          EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID }}
-          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+      - name: Expo Prebuild Android
+        run: npx expo prebuild --platform android
+
+      - name: Copy google-services.json to android/app
+        run: cp google-services.json android/app/google-services.json
 
       - name: Configure Gradle properties
         run: |

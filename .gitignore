@@ -40,3 +40,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+# Keystore - JANGAN DI-COMMIT
+*.keystore
+keystore_base64.txt
+

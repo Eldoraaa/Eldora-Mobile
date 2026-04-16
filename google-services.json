@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "161947010612",
+    "project_id": "eldora-d0c4b",
+    "storage_bucket": "eldora-d0c4b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:161947010612:android:d2f0a72663dcdabb0fac61",
+        "android_client_info": {
+          "package_name": "com.eldora.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "161947010612-f0jmhmjp13bujn8a16ih11aktq5ks5v1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eldora.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "161947010612-60unubrnihanp8351bh84bb4nu5oqdq8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKsOlhJDgQfQipGi2WhQdCGz-LMPqAYV8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "161947010612-60unubrnihanp8351bh84bb4nu5oqdq8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

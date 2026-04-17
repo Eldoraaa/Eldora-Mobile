@@ -31,7 +31,7 @@ export default function WelcomeScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 items-center justify-center pt-8 px-6">
         <Image
-          source={require("../assets/images/eldora-welcome.png")}
+          source={require("../assets/images/eldora_welcome.png")}
           style={{ width: width - 40, height: width - 40 }}
           resizeMode="contain"
         />
@@ -75,7 +75,6 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
         </View>
 
-
         <View className="flex-row justify-center mt-6">
           <Text className="text-gray-500 text-xs font-medium">
             Want to login manually?{" "}
@@ -88,4 +87,3 @@ export default function WelcomeScreen() {
     </SafeAreaView>
   );
 }
-

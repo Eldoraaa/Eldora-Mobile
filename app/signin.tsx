@@ -83,7 +83,7 @@ export default function SigninScreen() {
 
           <View className="items-center justify-center mb-8">
             <Image
-              source={require("../assets/images/login_character.png")}
+              source={require("../assets/images/login_character.jpg")}
               style={{ width: width * 0.7, height: width * 0.6 }}
               resizeMode="contain"
             />

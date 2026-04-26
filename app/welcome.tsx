@@ -31,7 +31,7 @@ export default function WelcomeScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 items-center justify-center pt-8 px-6">
         <Image
-          source={require("../assets/images/eldora_welcome.png")}
+          source={require("../assets/images/eldora_welcome.jpg")}
           style={{ width: width - 40, height: width - 40 }}
           resizeMode="contain"
         />

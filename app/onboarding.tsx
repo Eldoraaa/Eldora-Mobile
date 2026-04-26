@@ -9,19 +9,19 @@ const SLIDES = [
     id: "1",
     title: "Welcome to Eldora",
     description: "A trustworthy companion platform that connects families with simple smart care.",
-    image: require("../assets/images/eldora_onboarding.png"),
+    image: require("../assets/images/eldora_onboarding.jpg"),
   },
   {
     id: "2",
     title: "Smart Monitoring",
     description: "Keep track of your loved ones' conditions gently and safely from anywhere.",
-    image: require("../assets/images/eldora_onboarding_2.png"),
+    image: require("../assets/images/eldora_onboarding_2.jpg"),
   },
   {
     id: "3",
     title: "Instant Alerts",
     description: "Receive fast, real-time push notifications when assistance is requested.",
-    image: require("../assets/images/eldora_onboarding_3.png"),
+    image: require("../assets/images/eldora_onboarding_3.jpg"),
   },
 ];
 

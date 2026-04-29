@@ -38,6 +38,11 @@ async function getNotificationsModule(): Promise<NotificationsModule | null> {
   return Notifications;
 }
 
+function getPermissionStatus(permission: unknown) {
+  const value = permission as { status?: string; granted?: boolean };
+  return value.status ?? (value.granted ? "granted" : "denied");
+}
+
 export async function registerFCMToken(): Promise<void> {
   if (!Device.isDevice) {
     console.warn("[FCM] Must use a physical device");
@@ -62,12 +67,15 @@ export async function registerFCMToken(): Promise<void> {
     });
   }
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  const existingStatus = getPermissionStatus(
+    await Notifications.getPermissionsAsync()
+  );
   let finalStatus = existingStatus;
 
   if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
+    finalStatus = getPermissionStatus(
+      await Notifications.requestPermissionsAsync()
+    );
   }
 
   if (finalStatus !== "granted") {

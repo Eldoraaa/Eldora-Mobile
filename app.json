@@ -18,12 +18,12 @@
       "bundleIdentifier": "com.eldora.app"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FDF8F5"
       },
       "package": "com.eldora.app",
-      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false
     },
@@ -33,6 +33,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "@react-native-firebase/app",
       "expo-router",
       [
         "expo-notifications",

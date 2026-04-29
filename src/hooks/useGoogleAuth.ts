@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from "react";
 import { Platform } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import auth from "@react-native-firebase/auth";
 import { router } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
 import { authService } from "@/services/authService";
@@ -19,7 +20,6 @@ export function useGoogleAuth() {
       ...(GOOGLE_IOS_CLIENT_ID && GOOGLE_IOS_CLIENT_ID !== "YOUR_IOS_CLIENT_ID_HERE"
         ? { iosClientId: GOOGLE_IOS_CLIENT_ID }
         : {}),
-      offlineAccess: true,
     });
   }, []);
 
@@ -39,14 +39,22 @@ export function useGoogleAuth() {
 
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      const idToken = userInfo.data?.idToken;
+      const googleIdToken = userInfo.data?.idToken;
 
-      if (!idToken) {
+      if (!googleIdToken) {
         throw new Error("Failed to get Google token");
       }
 
-      // Send the ID token to our backend for verification
-      const loginResponse = await authService.googleLogin(idToken);
+      // Sign into Firebase with Google credentials to get a Firebase token
+      const googleCredential = auth.GoogleAuthProvider.credential(googleIdToken);
+      await auth().signInWithCredential(googleCredential);
+      const firebaseToken = await auth().currentUser?.getIdToken();
+
+      if (!firebaseToken) {
+        throw new Error("Failed to get Firebase token");
+      }
+
+      const loginResponse = await authService.googleLogin(firebaseToken);
       setAuth(loginResponse.token, loginResponse.user);
       await registerFCMToken();
       router.replace("/home");

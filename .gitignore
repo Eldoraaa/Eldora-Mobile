@@ -42,7 +42,7 @@ yarn-error.*
 /android
 
 *.keystore
-keystore_base64.txt
+eldora-android-keystore-secrets.txt
 
 # Firebase - jangan commit, taruh lokal / decode dari CI secret
 google-services.json

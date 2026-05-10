@@ -8,14 +8,16 @@ import {
   useWindowDimensions,
   ActivityIndicator,
 } from "react-native";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import Toast from "react-native-toast-message";
 import { GoogleIcon } from "@/components/icons/GoogleIcon";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function WelcomeScreen() {
   const { width } = useWindowDimensions();
   const { signInWithGoogle, isLoading, error } = useGoogleAuth();
+  const { token } = useAuthStore();
 
   useEffect(() => {
     if (error) {
@@ -26,6 +28,10 @@ export default function WelcomeScreen() {
       });
     }
   }, [error]);
+
+  if (token) {
+    return <Redirect href="/home" />;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -43,8 +49,8 @@ export default function WelcomeScreen() {
         </Text>
 
         <Text className="text-sm text-gray-500 mb-8 leading-relaxed pr-6">
-          Find all the necessary monitor alerts and health tracking tools
-          seamlessly integrated. Caregiving has never been easier.
+          Pair your hub, monitor connection status, and manage caregiver access
+          from one simple place.
         </Text>
 
         <View className="gap-4">

@@ -1,8 +1,9 @@
 import React, { useRef, useState } from "react";
 import { View, Text, Image, FlatList, useWindowDimensions, Animated } from "react-native";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
+import { useAuthStore } from "@/stores/authStore";
 
 const SLIDES = [
   {
@@ -19,14 +20,15 @@ const SLIDES = [
   },
   {
     id: "3",
-    title: "Instant Alerts",
-    description: "Receive fast, real-time push notifications when assistance is requested.",
+    title: "Simple Pairing",
+    description: "Connect one hub to multiple caregiver phones from the same WiFi.",
     image: require("../assets/images/eldora_onboarding_3.jpg"),
   },
 ];
 
 export default function OnboardingScreen() {
   const { width } = useWindowDimensions();
+  const { token } = useAuthStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const slidesRef = useRef<FlatList>(null);
@@ -46,6 +48,10 @@ export default function OnboardingScreen() {
       router.push("/welcome" as any);
     }
   };
+
+  if (token) {
+    return <Redirect href="/home" />;
+  }
 
   const renderItem = ({ item }: { item: typeof SLIDES[0] }) => (
     <View style={{ width }} className="items-center justify-start pt-12">

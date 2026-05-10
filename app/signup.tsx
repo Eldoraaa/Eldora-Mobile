@@ -15,10 +15,11 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import Toast from "react-native-toast-message";
 import { ChevronLeft, Lock, Phone, User, Mail } from "lucide-react-native";
 import { authService } from "@/services/authService";
+import { useAuthStore } from "@/stores/authStore";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -31,6 +32,7 @@ type SignupForm = z.infer<typeof signupSchema>;
 
 export default function SignupScreen() {
   const { width } = useWindowDimensions();
+  const { token } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -62,6 +64,10 @@ export default function SignupScreen() {
       setIsLoading(false);
     }
   };
+
+  if (token) {
+    return <Redirect href="/home" />;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">

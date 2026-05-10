@@ -135,7 +135,6 @@ export default function RootLayout() {
         <Stack.Protected guard={!!token}>
           <Stack.Screen name="home" options={{ animation: "none" }} />
           <Stack.Screen name="devices" options={{ animation: "none" }} />
-          <Stack.Screen name="activity" options={{ animation: "none" }} />
           <Stack.Screen name="settings" options={{ animation: "none" }} />
           <Stack.Screen name="account" options={{ animation: "none" }} />
         </Stack.Protected>

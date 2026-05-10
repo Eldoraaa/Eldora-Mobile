@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 import {
   BatteryCharging,
   BatteryMedium,
@@ -20,11 +19,10 @@ import {
   WifiOff,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/authStore";
-import { homeService } from "@/services/homeService";
 import { DeviceStatus } from "@/types/home.types";
 import { formatRelativeTime } from "@/utils/formatters";
 import { MainTabScreen } from "@/components/navigation/MainTabScreen";
-import { queryKeys } from "@/lib/queryClient";
+import { useHomeSummaryQuery } from "@/hooks/useHomeSummaryQuery";
 
 function batteryCopy(device?: DeviceStatus) {
   if (device?.batteryLevel === null || device?.batteryLevel === undefined) {
@@ -62,10 +60,7 @@ export default function HomeScreen() {
     isPending,
     isRefetching,
     refetch,
-  } = useQuery({
-    queryKey: queryKeys.home.summary,
-    queryFn: homeService.getSummary,
-  });
+  } = useHomeSummaryQuery();
 
   const devices = summary?.devices ?? [];
   const mainDevice = devices[0];

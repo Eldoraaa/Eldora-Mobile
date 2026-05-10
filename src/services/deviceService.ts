@@ -15,6 +15,12 @@ import {
 } from "@/types/device.types";
 
 const LOCAL_PROVISIONING_HOST = "192.168.4.1";
+const LOCAL_PROVISIONING_FALLBACK_HOSTS = [
+  LOCAL_PROVISIONING_HOST,
+  "192.168.4.2",
+  "192.168.1.1",
+  "192.168.0.1",
+];
 const LOCAL_DIRECT_PROBE_TIMEOUT_MS = 5000;
 const LOCAL_SCAN_TIMEOUT_MS = 1400;
 const LOCAL_SCAN_CONCURRENCY = 28;
@@ -30,7 +36,7 @@ function subnetFromIp(ipAddress: string) {
 }
 
 function buildDiscoveryCandidates(ipAddress: string) {
-  const candidates = new Set<string>([LOCAL_PROVISIONING_HOST]);
+  const candidates = new Set<string>(LOCAL_PROVISIONING_FALLBACK_HOSTS);
   const subnet = subnetFromIp(ipAddress);
 
   if (subnet) {
@@ -50,7 +56,9 @@ function isEldoraHub(value: unknown): value is Omit<LocalProvisioningInfo, "ipAd
 
   return (
     (productName === "ELDORA_CARE" ||
-      (typeof setupSsid === "string" && setupSsid.startsWith("ELDORA-SETUP-"))) &&
+      (typeof productName === "string" && productName.includes("ELDORA")) ||
+      (typeof setupSsid === "string" && setupSsid.startsWith("ELDORA-SETUP-")) ||
+      typeof maybeHub.deviceKey === "string") &&
     typeof maybeHub.deviceKey === "string" &&
     typeof maybeHub.pairingToken === "string"
   );
@@ -60,7 +68,7 @@ async function probeHub(
   ipAddress: string,
   timeoutMs = LOCAL_SCAN_TIMEOUT_MS
 ): Promise<LocalProvisioningInfo | null> {
-  for (const path of ["/status", "/"]) {
+  for (const path of ["/status", "/api/status", "/"]) {
     try {
       const response = await axios.get(`http://${ipAddress}${path}`, {
         timeout: timeoutMs,
@@ -223,12 +231,10 @@ export const deviceService = {
   },
 
   async discoverLocalHubs(): Promise<LocalProvisioningInfo[]> {
-    const directHub = await probeHub(
-      LOCAL_PROVISIONING_HOST,
-      LOCAL_DIRECT_PROBE_TIMEOUT_MS
-    );
-
-    if (directHub) return [directHub];
+    for (const host of LOCAL_PROVISIONING_FALLBACK_HOSTS) {
+      const directHub = await probeHub(host, LOCAL_DIRECT_PROBE_TIMEOUT_MS);
+      if (directHub) return [directHub];
+    }
 
     const ipAddress = await Network.getIpAddressAsync();
     const candidates = buildDiscoveryCandidates(ipAddress);

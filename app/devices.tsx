@@ -2,26 +2,21 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Linking,
-  Modal,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import Toast from "react-native-toast-message";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BatteryCharging,
   BatteryMedium,
   Check,
   Clock,
-  Eye,
-  EyeOff,
   Router as RouterIcon,
   Users,
   Wifi,
@@ -29,15 +24,25 @@ import {
   X,
 } from "lucide-react-native";
 import { MainTabScreen } from "@/components/navigation/MainTabScreen";
-import { queryKeys } from "@/lib/queryClient";
-import { deviceService } from "@/services/deviceService";
+import { WifiConfigModal } from "@/components/devices/WifiConfigModal";
+import { WifiNetworkRow } from "@/components/devices/WifiNetworkRow";
+import {
+  useApprovePairingRequestMutation,
+  useDiscoverLocalHubsMutation,
+  useDevicesScreenQuery,
+  usePairLocalDeviceMutation,
+  useProvisionLocalWifiMutation,
+  useQueueWifiConfigMutation,
+  useRejectPairingRequestMutation,
+  useScanLocalWifiNetworksMutation,
+  useSyncDevicesToHomeSummary,
+} from "@/hooks/useDeviceQueries";
 import {
   DevicePairingRequest,
   EldoraDevice,
   LocalProvisioningInfo,
   WifiNetwork,
 } from "@/types/device.types";
-import { HomeSummary } from "@/types/home.types";
 import { formatRelativeTime } from "@/utils/formatters";
 
 type WifiTarget =
@@ -58,29 +63,6 @@ function batteryColor(level: number | null) {
   return "#22C55E";
 }
 
-function wifiStrengthLabel(rssi: number) {
-  if (rssi >= -55) return "Strong";
-  if (rssi >= -70) return "Fair";
-  return "Weak";
-}
-
-function toHomeSummary(devices: EldoraDevice[]): HomeSummary {
-  return {
-    devices: devices.map((device) => ({
-      id: device.id,
-      deviceId: device.deviceId,
-      name: device.name,
-      isOnline: device.isOnline,
-      lastSeen: device.lastSeen,
-      batteryLevel: device.batteryLevel,
-      isCharging: device.isCharging,
-      wifiSsid: device.wifiSsid,
-      wifiRssi: device.wifiRssi,
-      firmwareVersion: device.firmwareVersion,
-    })),
-  };
-}
-
 function formatExpiresIn(isoString: string) {
   const diffMs = new Date(isoString).getTime() - Date.now();
   if (diffMs <= 0) return "Expired";
@@ -90,42 +72,6 @@ function formatExpiresIn(isoString: string) {
 
   const diffHours = Math.ceil(diffMins / 60);
   return `${diffHours} hours left`;
-}
-
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry,
-  right,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  secureTextEntry?: boolean;
-  right?: React.ReactNode;
-}) {
-  return (
-    <View>
-      <Text className="mb-2 ml-1 text-xs font-bold text-[#6C7A89]">
-        {label}
-      </Text>
-      <View className="h-[54px] flex-row items-center rounded-2xl border border-white bg-[#F6FAFD] px-4">
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="#A0AEC0"
-          secureTextEntry={secureTextEntry}
-          autoCapitalize="none"
-          className="flex-1 py-0 text-[15px] font-semibold text-[#1F2A37]"
-        />
-        {right}
-      </View>
-    </View>
-  );
 }
 
 function DeviceRow({
@@ -325,36 +271,6 @@ function DiscoveredHubCard({
   );
 }
 
-function WifiNetworkRow({
-  network,
-  onPress,
-}: {
-  network: WifiNetwork;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className="flex-row items-center border-t border-[#EEF3F7] py-3"
-      activeOpacity={0.82}
-    >
-      <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl bg-white">
-        <Wifi size={18} color="#7BA7D4" />
-      </View>
-      <View className="flex-1">
-        <Text className="text-[14px] font-bold text-[#1F2A37]" numberOfLines={1}>
-          {network.ssid}
-        </Text>
-        <Text className="mt-0.5 text-[12px] font-semibold text-[#7B8794]">
-          {wifiStrengthLabel(network.rssi)}
-          {network.secure ? " - Secured" : " - Open"}
-        </Text>
-      </View>
-      <Text className="text-[12px] font-bold text-[#2477F2]">Select</Text>
-    </TouchableOpacity>
-  );
-}
-
 export default function DevicesScreen() {
   const [discoveredHubs, setDiscoveredHubs] = useState<LocalProvisioningInfo[]>([]);
   const [localHub, setLocalHub] = useState<LocalProvisioningInfo | null>(null);
@@ -364,6 +280,7 @@ export default function DevicesScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isPairing, setIsPairing] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [busyRequestId, setBusyRequestId] = useState<string | null>(null);
   const [wifiTarget, setWifiTarget] = useState<WifiTarget | null>(null);
   const [showWifiPickerInModal, setShowWifiPickerInModal] = useState(false);
@@ -373,21 +290,14 @@ export default function DevicesScreen() {
   const [isSendingWifi, setIsSendingWifi] = useState(false);
   const discoveryRunningRef = useRef(false);
   const completedHubKeysRef = useRef<Set<string>>(new Set());
-  const queryClient = useQueryClient();
-  const devicesScreenQuery = useQuery({
-    queryKey: queryKeys.devices.screen,
-    queryFn: async () => {
-      const [deviceData, requestData] = await Promise.all([
-        deviceService.getDevices(),
-        deviceService.getPairingRequests().catch(() => []),
-      ]);
-
-      return {
-        devices: deviceData,
-        pairingRequests: requestData,
-      };
-    },
-  });
+  const devicesScreenQuery = useDevicesScreenQuery();
+  const pairLocalDeviceMutation = usePairLocalDeviceMutation();
+  const approvePairingRequestMutation = useApprovePairingRequestMutation();
+  const rejectPairingRequestMutation = useRejectPairingRequestMutation();
+  const queueWifiConfigMutation = useQueueWifiConfigMutation();
+  const provisionLocalWifiMutation = useProvisionLocalWifiMutation();
+  const scanLocalWifiNetworksMutation = useScanLocalWifiNetworksMutation();
+  const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
 
   const activeLocalHub = localHub;
   const devices = devicesScreenQuery.data?.devices ?? [];
@@ -399,14 +309,7 @@ export default function DevicesScreen() {
     [devices]
   );
 
-  useEffect(() => {
-    if (!devicesScreenQuery.data) return;
-
-    queryClient.setQueryData<HomeSummary>(
-      queryKeys.home.summary,
-      toHomeSummary(devicesScreenQuery.data.devices)
-    );
-  }, [devicesScreenQuery.data, queryClient]);
+  useSyncDevicesToHomeSummary(devicesScreenQuery.data);
 
   const refetchDeviceData = async () => {
     const result = await devicesScreenQuery.refetch();
@@ -418,13 +321,6 @@ export default function DevicesScreen() {
         text1: "Device data failed to load",
         text2: "Please try again in a moment.",
       });
-    }
-
-    if (result.data?.devices) {
-      queryClient.setQueryData<HomeSummary>(
-        queryKeys.home.summary,
-        toHomeSummary(result.data.devices)
-      );
     }
   };
 
@@ -441,7 +337,7 @@ export default function DevicesScreen() {
     setWifiScanError(null);
 
     try {
-      const networks = await deviceService.scanLocalWifiNetworks(scanIp);
+      const networks = await scanLocalWifiNetworksMutation.mutateAsync(scanIp);
       setWifiNetworks(networks);
       if (networks.length === 0) {
         setWifiScanError("No WiFi networks found near the hub.");
@@ -498,7 +394,7 @@ export default function DevicesScreen() {
     setLocalHub(hub);
 
     try {
-      const result = await deviceService.pairLocalDevice({
+      const result = await pairLocalDeviceMutation.mutateAsync({
         deviceKey: hub.deviceKey,
         pairingToken: hub.pairingToken,
         localIp: hub.ipAddress,
@@ -551,10 +447,12 @@ export default function DevicesScreen() {
     setIsDiscovering(true);
 
     try {
-      const hubs = await deviceService.discoverLocalHubs();
+      const hubs = await discoverLocalHubsMutation.mutateAsync();
       setDiscoveredHubs(hubs);
+      setDiscoveryError(null);
 
       if (hubs.length === 0) {
+        setDiscoveryError("No response from the hub setup address.");
         if (!silent) {
           Toast.show({
             type: "error",
@@ -583,6 +481,9 @@ export default function DevicesScreen() {
       }
     } catch (err) {
       console.error("[Devices] Failed to discover local hubs:", err);
+      setDiscoveryError(
+        err instanceof Error ? err.message : "Could not reach the hub."
+      );
       if (!silent) {
         Toast.show({
           type: "error",
@@ -598,6 +499,16 @@ export default function DevicesScreen() {
 
   useEffect(() => {
     void discoverLocalHubs(true);
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void discoverLocalHubs(true);
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
@@ -652,13 +563,16 @@ export default function DevicesScreen() {
       const payload = { ssid: ssid.trim(), password };
 
       if (wifiTarget.kind === "device" && wifiTarget.device.isOnline) {
-        await deviceService.queueWifiConfig(wifiTarget.device.id, payload);
+        await queueWifiConfigMutation.mutateAsync({
+          deviceId: wifiTarget.device.id,
+          payload,
+        });
       } else {
         const ipAddress =
           wifiTarget.kind === "local"
             ? wifiTarget.hub.ipAddress
             : wifiTarget.device.localIp ?? localHub?.ipAddress;
-        await deviceService.provisionLocalWifi(payload, ipAddress);
+        await provisionLocalWifiMutation.mutateAsync({ payload, ipAddress });
       }
 
       closeWifiModal();
@@ -688,7 +602,7 @@ export default function DevicesScreen() {
   const approveRequest = async (request: DevicePairingRequest) => {
     setBusyRequestId(request.id);
     try {
-      await deviceService.approvePairingRequest(request.id);
+      await approvePairingRequestMutation.mutateAsync(request.id);
       await refetchDeviceData();
       Toast.show({
         type: "success",
@@ -710,7 +624,7 @@ export default function DevicesScreen() {
   const rejectRequest = async (request: DevicePairingRequest) => {
     setBusyRequestId(request.id);
     try {
-      await deviceService.rejectPairingRequest(request.id);
+      await rejectPairingRequestMutation.mutateAsync(request.id);
       await refetchDeviceData();
       Toast.show({
         type: "success",
@@ -746,6 +660,8 @@ export default function DevicesScreen() {
     ? "Checking the current WiFi network for a nearby hub."
     : activeLocalHub
       ? "This phone can communicate with the hub on the current network."
+      : discoveryError
+        ? discoveryError
       : "Pull down to check the current WiFi network again.";
   const hubMeta = activeLocalHub
     ? `${activeLocalHub.productName} - ${activeLocalHub.ipAddress}`
@@ -960,148 +876,25 @@ export default function DevicesScreen() {
           </View>
         </ScrollView>
 
-      <Modal
+      <WifiConfigModal
         visible={!!wifiTarget}
-        transparent
-        animationType="fade"
-        onRequestClose={closeWifiModal}
-      >
-        <View className="flex-1 justify-end bg-black/35">
-          <Pressable className="flex-1" onPress={closeWifiModal} />
-          <View className="rounded-t-[34px] bg-white px-5 pb-8 pt-5">
-            <View className="mb-6 h-1.5 w-12 self-center rounded-full bg-gray-200" />
-            <View className="mb-5 flex-row items-center justify-between">
-              <View>
-                <Text className="text-xl font-bold text-[#1F2A37]">
-                  WiFi
-                </Text>
-                <Text className="mt-1 text-sm text-[#7B8794]">
-                  {wifiTitle}
-                </Text>
-              </View>
-              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF7FC]">
-                <Wifi size={23} color="#7BA7D4" />
-              </View>
-            </View>
-
-            <View className="mb-4 rounded-2xl bg-[#EEF7FC] p-4">
-              <Text className="text-[12px] font-bold uppercase text-[#5D7184]">
-                Hub connection
-              </Text>
-              <Text className="mt-1 text-sm font-semibold text-[#1F2A37]">
-                {wifiTargetIp ?? "Local connection unavailable"}
-              </Text>
-              <Text className="mt-1 text-xs text-[#7B8794]">
-                {showWifiPickerInModal
-                  ? "Choose a scanned network, then enter its password."
-                  : "Enter the password for the selected network."}
-              </Text>
-            </View>
-
-            {showWifiPickerInModal ? (
-              <View className="mb-4 rounded-2xl bg-[#F8FBFD] px-4 pb-1 pt-4">
-                <View className="mb-2 flex-row items-center justify-between">
-                  <View className="flex-1 pr-3">
-                    <Text className="text-[11px] font-bold uppercase text-[#7B8794]">
-                      Available WiFi
-                    </Text>
-                    <Text className="mt-1 text-[13px] font-semibold text-[#1F2A37]">
-                      Select the network this hub should use.
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => scanWifiNetworks(wifiTargetIp)}
-                    disabled={isScanningWifi || !wifiTargetIp}
-                    className="rounded-xl bg-white px-3 py-2"
-                    activeOpacity={0.82}
-                  >
-                    <Text className="text-[12px] font-bold text-[#2477F2]">
-                      {isScanningWifi ? "Scanning" : "Rescan"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {isScanningWifi ? (
-                  <View className="flex-row items-center border-t border-[#EEF3F7] py-3">
-                    <ActivityIndicator color="#2477F2" />
-                    <Text className="ml-3 text-[13px] font-semibold text-[#7B8794]">
-                      Scanning networks near the hub...
-                    </Text>
-                  </View>
-                ) : wifiNetworks.length > 0 ? (
-                  wifiNetworks.map((network) => (
-                    <WifiNetworkRow
-                      key={`modal-${network.ssid}-${network.channel ?? "auto"}`}
-                      network={network}
-                      onPress={() => setSsid(network.ssid)}
-                    />
-                  ))
-                ) : (
-                  <View className="border-t border-[#EEF3F7] py-3">
-                    <Text className="text-[13px] font-semibold text-[#7B8794]">
-                      {wifiScanError ?? "No networks scanned yet."}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ) : null}
-
-            <View className="gap-4">
-              <View>
-                <Text className="mb-2 ml-1 text-xs font-bold text-[#6C7A89]">
-                  Selected network
-                </Text>
-                <View className="h-[54px] flex-row items-center rounded-2xl bg-[#F6FAFD] px-4">
-                  <Wifi size={18} color="#7BA7D4" />
-                  <Text
-                    className="ml-3 flex-1 text-[15px] font-bold text-[#1F2A37]"
-                    numberOfLines={1}
-                  >
-                    {ssid || "Choose a WiFi network first"}
-                  </Text>
-                </View>
-              </View>
-              <Field
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="WiFi password"
-                secureTextEntry={!showPassword}
-                right={
-                  <TouchableOpacity
-                    onPress={() => setShowPassword((value) => !value)}
-                    className="h-9 w-9 items-center justify-center"
-                    accessibilityLabel={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff size={18} color="#7B8794" />
-                    ) : (
-                      <Eye size={18} color="#7B8794" />
-                    )}
-                  </TouchableOpacity>
-                }
-              />
-            </View>
-
-            <View className="mt-6">
-              <TouchableOpacity
-                onPress={handleWifiSubmit}
-                disabled={isSendingWifi}
-                className="h-14 items-center justify-center rounded-2xl bg-[#2477F2]"
-                activeOpacity={0.9}
-              >
-                {isSendingWifi ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="font-bold text-white">Send</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        title={wifiTitle}
+        targetIp={wifiTargetIp}
+        showWifiPicker={showWifiPickerInModal}
+        wifiNetworks={wifiNetworks}
+        isScanningWifi={isScanningWifi}
+        wifiScanError={wifiScanError}
+        ssid={ssid}
+        password={password}
+        showPassword={showPassword}
+        isSendingWifi={isSendingWifi}
+        onClose={closeWifiModal}
+        onRescan={() => scanWifiNetworks(wifiTargetIp)}
+        onSelectNetwork={setSsid}
+        onPasswordChange={setPassword}
+        onTogglePassword={() => setShowPassword((value) => !value)}
+        onSubmit={handleWifiSubmit}
+      />
     </MainTabScreen>
   );
 }

@@ -1,16 +1,16 @@
-import { Alert } from "./alert.types";
-
 export interface DeviceStatus {
+  id: string;
   deviceId: string;
   name: string;
   isOnline: boolean;
-  lastSeen: string;
+  lastSeen: string | null;
+  batteryLevel?: number | null;
+  isCharging?: boolean;
+  wifiSsid?: string | null;
+  wifiRssi?: number | null;
+  firmwareVersion?: string | null;
 }
 
 export interface HomeSummary {
-  greeting: string;
-  elderName: string;
   devices: DeviceStatus[];
-  recentAlerts: Alert[];
-  unreadAlertCount: number;
 }

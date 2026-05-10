@@ -5,7 +5,6 @@ import auth from "@react-native-firebase/auth";
 import { router } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
 import { authService } from "@/services/authService";
-import { registerFCMToken } from "@/utils/notifications";
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
@@ -56,7 +55,6 @@ export function useGoogleAuth() {
 
       const loginResponse = await authService.googleLogin(firebaseToken);
       setAuth(loginResponse.token, loginResponse.user);
-      await registerFCMToken();
       router.replace("/home");
     } catch (err: any) {
       if (err.code === "SIGN_IN_CANCELLED" || err.message?.includes("CANCELED")) {

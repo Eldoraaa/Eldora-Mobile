@@ -18,8 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/stores/authStore";
 import { authService } from "@/services/authService";
-import { registerFCMToken } from "@/utils/notifications";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { ChevronLeft, Lock, Mail } from "lucide-react-native";
 
 const loginSchema = z.object({
@@ -31,7 +30,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function SigninScreen() {
   const { width } = useWindowDimensions();
-  const { setAuth, setLoading, isLoading } = useAuthStore();
+  const { token, setAuth, setLoading, isLoading } = useAuthStore();
 
   const {
     control,
@@ -47,7 +46,6 @@ export default function SigninScreen() {
     try {
       const response = await authService.login(data);
       setAuth(response.token, response.user);
-      await registerFCMToken();
       router.replace("/home");
     } catch (err: any) {
       Toast.show({
@@ -59,6 +57,10 @@ export default function SigninScreen() {
       setLoading(false);
     }
   };
+
+  if (token) {
+    return <Redirect href="/home" />;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">

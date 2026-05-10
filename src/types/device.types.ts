@@ -1,7 +1,6 @@
 export interface EldoraDevice {
   id: string;
   deviceId: string;
-  deviceKey: string;
   name: string;
   elderName: string;
   isOnline: boolean;

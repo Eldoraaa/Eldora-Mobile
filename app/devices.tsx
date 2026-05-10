@@ -372,7 +372,6 @@ export default function DevicesScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSendingWifi, setIsSendingWifi] = useState(false);
   const discoveryRunningRef = useRef(false);
-  const pairedDeviceKeysRef = useRef<Set<string>>(new Set());
   const completedHubKeysRef = useRef<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const devicesScreenQuery = useQuery({
@@ -399,12 +398,6 @@ export default function DevicesScreen() {
     () => devices.filter((device) => device.isOnline).length,
     [devices]
   );
-
-  useEffect(() => {
-    pairedDeviceKeysRef.current = new Set(
-      devices.map((device) => device.deviceKey)
-    );
-  }, [devices]);
 
   useEffect(() => {
     if (!devicesScreenQuery.data) return;
@@ -496,8 +489,7 @@ export default function DevicesScreen() {
   ) => {
     if (
       silent &&
-      (completedHubKeysRef.current.has(hub.deviceKey) ||
-        pairedDeviceKeysRef.current.has(hub.deviceKey))
+      completedHubKeysRef.current.has(hub.deviceKey)
     ) {
       return;
     }

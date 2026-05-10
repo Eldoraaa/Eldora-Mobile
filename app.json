@@ -5,11 +5,11 @@
     "version": "1.0.0",
     "scheme": "eldora",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/eldora_logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/images/eldora_logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#FDF8F5"
     },
@@ -19,8 +19,14 @@
     },
     "android": {
       "googleServicesFile": "./google-services.json",
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_WIFI_STATE"
+      ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/eldora_logo.png",
         "backgroundColor": "#FDF8F5"
       },
       "package": "com.eldora.app",
@@ -30,17 +36,28 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/images/eldora_logo.png"
     },
     "plugins": [
       "@react-native-firebase/app",
       "expo-router",
       [
-        "expo-notifications",
+        "expo-splash-screen",
         {
-          "icon": "./assets/notification-icon.png",
-          "color": "#FF8A7A",
-          "sounds": []
+          "backgroundColor": "#FDF8F5",
+          "image": "./assets/images/eldora_logo.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "android": {
+            "backgroundColor": "#FDF8F5",
+            "image": "./assets/images/eldora_logo.png",
+            "imageWidth": 180
+          },
+          "ios": {
+            "backgroundColor": "#FDF8F5",
+            "image": "./assets/images/eldora_logo.png",
+            "resizeMode": "contain"
+          }
         }
       ],
       "@react-native-google-signin/google-signin",

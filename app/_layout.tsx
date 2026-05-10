@@ -1,10 +1,11 @@
 import "../global.css";
 import React, { useEffect, useRef } from "react";
 import { View, Text } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, ErrorBoundaryProps } from "expo-router";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { setupNotificationListeners } from "@/utils/notifications";
+import { queryClient } from "@/lib/queryClient";
 import Toast, { ToastConfig } from "react-native-toast-message";
 import { AlertTriangle, CheckCircle, X } from "lucide-react-native";
 import { TouchableOpacity } from "react-native";
@@ -70,22 +71,61 @@ const toastConfig: ToastConfig = {
   },
 };
 
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#FDF8F5",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 24,
+      }}
+    >
+      <Text style={{ color: "#1F2A37", fontSize: 22, fontWeight: "700" }}>
+        Eldora needs a reload
+      </Text>
+      <Text
+        style={{
+          color: "#7B8794",
+          fontSize: 13,
+          lineHeight: 20,
+          marginTop: 10,
+          textAlign: "center",
+        }}
+      >
+        {error.message}
+      </Text>
+      <TouchableOpacity
+        onPress={retry}
+        style={{
+          marginTop: 18,
+          height: 46,
+          paddingHorizontal: 22,
+          borderRadius: 16,
+          backgroundColor: "#2477F2",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>Reload</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function RootLayout() {
   const { token, isHydrated } = useAuthStore();
-
-  useEffect(() => {
-    const cleanup = setupNotificationListeners();
-    return cleanup;
-  }, []);
 
   if (!isHydrated) {
     return <LoadingSpinner />;
   }
 
   return (
-    <>
-      <Stack screenOptions={{ headerShown: false }}>
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false, animation: "none" }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="+not-found" />
         <Stack.Protected guard={!token}>
           <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
           <Stack.Screen name="welcome" options={{ animation: "fade" }} />
@@ -93,10 +133,14 @@ export default function RootLayout() {
           <Stack.Screen name="signup" options={{ animation: "slide_from_right" }} />
         </Stack.Protected>
         <Stack.Protected guard={!!token}>
-          <Stack.Screen name="home" />
+          <Stack.Screen name="home" options={{ animation: "none" }} />
+          <Stack.Screen name="devices" options={{ animation: "none" }} />
+          <Stack.Screen name="activity" options={{ animation: "none" }} />
+          <Stack.Screen name="settings" options={{ animation: "none" }} />
+          <Stack.Screen name="account" options={{ animation: "none" }} />
         </Stack.Protected>
       </Stack>
       <Toast config={toastConfig} position="top" topOffset={60} />
-    </>
+    </QueryClientProvider>
   );
 }

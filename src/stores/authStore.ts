@@ -30,8 +30,12 @@ export const useAuthStore = create<AuthState>()(
       name: "eldora-auth",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ token: state.token, user: state.user }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated();
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) {
+          console.warn("[AuthStore] Failed to rehydrate auth state:", error);
+        }
+
+        useAuthStore.setState({ isHydrated: true });
       },
     }
   )

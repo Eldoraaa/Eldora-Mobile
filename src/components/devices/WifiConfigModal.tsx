@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Eye, EyeOff, Wifi } from "lucide-react-native";
 import { WifiNetwork } from "@/types/device.types";
 import { WifiNetworkRow } from "./WifiNetworkRow";
@@ -96,7 +97,10 @@ export function WifiConfigModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View className="flex-1 justify-end bg-black/35">
+      <KeyboardAvoidingView
+        className="flex-1 justify-end bg-black/35"
+        behavior="translate-with-padding"
+      >
         <Pressable className="flex-1" onPress={onClose} />
         <View className="rounded-t-[34px] bg-white px-5 pb-8 pt-5">
           <View className="mb-6 h-1.5 w-12 self-center rounded-full bg-gray-200" />
@@ -226,7 +230,7 @@ export function WifiConfigModal({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

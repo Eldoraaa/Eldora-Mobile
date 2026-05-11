@@ -2,14 +2,13 @@ import React from "react";
 import {
   View,
   Text,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   TouchableOpacity,
   useWindowDimensions,
   Image,
   TextInput,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import Toast from "react-native-toast-message";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -66,7 +65,7 @@ export default function SigninScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="translate-with-padding"
       >
         <ScrollView
           className="flex-1 flex-grow"

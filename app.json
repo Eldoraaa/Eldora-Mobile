@@ -25,6 +25,7 @@
     },
     "android": {
       "googleServicesFile": "./google-services.json",
+      "softwareKeyboardLayoutMode": "resize",
       "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.INTERNET",

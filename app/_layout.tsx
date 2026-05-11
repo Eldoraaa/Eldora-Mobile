@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { View, Text } from "react-native";
 import { Stack, ErrorBoundaryProps } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useAuthStore } from "@/stores/authStore";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { queryClient } from "@/lib/queryClient";
@@ -123,23 +124,25 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="+not-found" />
-        <Stack.Protected guard={!token}>
-          <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
-          <Stack.Screen name="welcome" options={{ animation: "fade" }} />
-          <Stack.Screen name="signin" options={{ animation: "slide_from_right" }} />
-          <Stack.Screen name="signup" options={{ animation: "slide_from_right" }} />
-        </Stack.Protected>
-        <Stack.Protected guard={!!token}>
-          <Stack.Screen name="home" options={{ animation: "none" }} />
-          <Stack.Screen name="devices" options={{ animation: "none" }} />
-          <Stack.Screen name="settings" options={{ animation: "none" }} />
-          <Stack.Screen name="account" options={{ animation: "none" }} />
-        </Stack.Protected>
-      </Stack>
-      <Toast config={toastConfig} position="top" topOffset={60} />
+      <KeyboardProvider>
+        <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="+not-found" />
+          <Stack.Protected guard={!token}>
+            <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
+            <Stack.Screen name="welcome" options={{ animation: "fade" }} />
+            <Stack.Screen name="signin" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="signup" options={{ animation: "slide_from_right" }} />
+          </Stack.Protected>
+          <Stack.Protected guard={!!token}>
+            <Stack.Screen name="home" options={{ animation: "none" }} />
+            <Stack.Screen name="devices" options={{ animation: "none" }} />
+            <Stack.Screen name="settings" options={{ animation: "none" }} />
+            <Stack.Screen name="account" options={{ animation: "none" }} />
+          </Stack.Protected>
+        </Stack>
+        <Toast config={toastConfig} position="top" topOffset={60} />
+      </KeyboardProvider>
     </QueryClientProvider>
   );
 }

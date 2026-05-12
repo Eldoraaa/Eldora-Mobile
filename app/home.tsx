@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -23,6 +23,11 @@ import { DeviceStatus } from "@/types/home.types";
 import { formatRelativeTime } from "@/utils/formatters";
 import { MainTabScreen } from "@/components/navigation/MainTabScreen";
 import { useHomeSummaryQuery } from "@/hooks/useHomeSummaryQuery";
+import {
+  useDiscoverLocalHubsMutation,
+  usePairLocalDeviceMutation,
+} from "@/hooks/useDeviceQueries";
+import Toast from "react-native-toast-message";
 
 function batteryCopy(device?: DeviceStatus) {
   if (device?.batteryLevel === null || device?.batteryLevel === undefined) {
@@ -55,12 +60,15 @@ function StatCard({
 
 export default function HomeScreen() {
   const { user } = useAuthStore();
+  const autoPairAttemptedRef = useRef(false);
   const {
     data: summary,
     isPending,
     isRefetching,
     refetch,
   } = useHomeSummaryQuery();
+  const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
+  const pairLocalDeviceMutation = usePairLocalDeviceMutation();
 
   const devices = summary?.devices ?? [];
   const mainDevice = devices[0];
@@ -69,6 +77,63 @@ export default function HomeScreen() {
     [devices]
   );
   const isInitialLoading = isPending && !summary;
+
+  useEffect(() => {
+    if (isPending || devices.length > 0 || autoPairAttemptedRef.current) {
+      return;
+    }
+
+    let isCancelled = false;
+    autoPairAttemptedRef.current = true;
+
+    const autoPairLocalHub = async () => {
+      try {
+        const hubs = await discoverLocalHubsMutation.mutateAsync();
+        const hub = hubs.find((item) => item.hasWifi);
+        if (!hub || isCancelled) return;
+
+        const result = await pairLocalDeviceMutation.mutateAsync({
+          deviceKey: hub.deviceKey,
+          pairingToken: hub.pairingToken,
+          localIp: hub.ipAddress,
+          elderName: "Eldora User",
+          deviceName: "Home Hub",
+          batteryLevel: hub.batteryLevel ?? undefined,
+          isCharging: hub.isCharging,
+          wifiSsid: hub.wifiSsid ?? undefined,
+          wifiRssi: hub.wifiRssi ?? undefined,
+          firmwareVersion: hub.firmwareVersion,
+        });
+
+        if (isCancelled) return;
+
+        Toast.show({
+          type: "success",
+          text1: result.kind === "pending" ? "Request sent" : "Hub connected",
+          text2:
+            result.kind === "pending"
+              ? "An existing caregiver needs to approve this phone."
+              : `${result.device.name} is now linked to this phone.`,
+        });
+
+        await refetch();
+      } catch (err) {
+        console.error("[Home] Failed to auto pair local hub:", err);
+      }
+    };
+
+    void autoPairLocalHub();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    devices.length,
+    discoverLocalHubsMutation,
+    isPending,
+    pairLocalDeviceMutation,
+    refetch,
+  ]);
 
   return (
     <MainTabScreen active="home">

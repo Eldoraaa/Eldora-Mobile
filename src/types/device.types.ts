@@ -23,6 +23,11 @@ export interface PairDevicePayload {
 export interface LocalPairDevicePayload extends PairDevicePayload {
   pairingToken: string;
   localIp?: string;
+  batteryLevel?: number;
+  isCharging?: boolean;
+  wifiSsid?: string;
+  wifiRssi?: number;
+  firmwareVersion?: string;
 }
 
 export interface WifiConfigPayload {
@@ -47,6 +52,7 @@ export interface LocalProvisioningInfo {
   ipAddress: string;
   hasWifi: boolean;
   wifiSsid?: string | null;
+  wifiRssi?: number | null;
   batteryLevel?: number | null;
   isCharging?: boolean;
 }

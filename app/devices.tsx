@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import {
   ActivityIndicator,
   Alert,
@@ -400,6 +401,11 @@ export default function DevicesScreen() {
         localIp: hub.ipAddress,
         elderName: "Eldora User",
         deviceName: "Home Hub",
+        batteryLevel: hub.batteryLevel ?? undefined,
+        isCharging: hub.isCharging,
+        wifiSsid: hub.wifiSsid ?? undefined,
+        wifiRssi: hub.wifiRssi ?? undefined,
+        firmwareVersion: hub.firmwareVersion,
       });
 
       if (result.kind === "pending") {
@@ -429,10 +435,20 @@ export default function DevicesScreen() {
       console.error("[Devices] Failed to pair local hub:", err);
 
       if (!silent) {
+        const status = axios.isAxiosError(err) ? err.response?.status : null;
+        const text2 =
+          status === 401
+            ? "Sign in again, then pair this hub."
+            : status === 403
+              ? "Restart the hub or wait for its next heartbeat, then try again."
+              : status === 404
+                ? "Deploy the latest backend, then pair this hub again."
+                : "Reconnect this phone to internet, then try again.";
+
         Toast.show({
           type: "error",
-          text1: "Hub found, backend not reachable",
-          text2: "Reconnect this phone to internet, then try again.",
+          text1: status ? "Hub found, pairing failed" : "Hub found, backend not reachable",
+          text2,
         });
       }
     } finally {

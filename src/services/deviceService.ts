@@ -21,9 +21,9 @@ const LOCAL_PROVISIONING_FALLBACK_HOSTS = [
   "192.168.1.1",
   "192.168.0.1",
 ];
-const LOCAL_DIRECT_PROBE_TIMEOUT_MS = 5000;
-const LOCAL_SCAN_TIMEOUT_MS = 1400;
-const LOCAL_SCAN_CONCURRENCY = 28;
+const LOCAL_SCAN_TIMEOUT_MS = 750;
+const LOCAL_SCAN_CONCURRENCY = 64;
+const LOCAL_DISCOVERY_TIMEOUT_MS = 12000;
 
 function isIPv4(value: string) {
   return /^\d{1,3}(\.\d{1,3}){3}$/.test(value);
@@ -68,7 +68,7 @@ async function probeHub(
   ipAddress: string,
   timeoutMs = LOCAL_SCAN_TIMEOUT_MS
 ): Promise<LocalProvisioningInfo | null> {
-  for (const path of ["/status", "/api/status", "/"]) {
+  for (const path of ["/status", "/"]) {
     try {
       const response = await axios.get(`http://${ipAddress}${path}`, {
         timeout: timeoutMs,
@@ -100,6 +100,21 @@ async function probeHub(
   }
 
   return null;
+}
+
+async function withDiscoveryTimeout<T>(promise: Promise<T>, fallback: T) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((resolve) => {
+        timeoutId = setTimeout(() => resolve(fallback), LOCAL_DISCOVERY_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 }
 
 async function runDiscoveryPool(candidates: string[]) {
@@ -231,13 +246,8 @@ export const deviceService = {
   },
 
   async discoverLocalHubs(): Promise<LocalProvisioningInfo[]> {
-    for (const host of LOCAL_PROVISIONING_FALLBACK_HOSTS) {
-      const directHub = await probeHub(host, LOCAL_DIRECT_PROBE_TIMEOUT_MS);
-      if (directHub) return [directHub];
-    }
-
     const ipAddress = await Network.getIpAddressAsync();
     const candidates = buildDiscoveryCandidates(ipAddress);
-    return runDiscoveryPool(candidates);
+    return withDiscoveryTimeout(runDiscoveryPool(candidates), []);
   },
 };

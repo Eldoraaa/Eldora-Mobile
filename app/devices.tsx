@@ -290,6 +290,7 @@ export default function DevicesScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSendingWifi, setIsSendingWifi] = useState(false);
   const discoveryRunningRef = useRef(false);
+  const autoDiscoveryAttemptedRef = useRef(false);
   const completedHubKeysRef = useRef<Set<string>>(new Set());
   const devicesScreenQuery = useDevicesScreenQuery();
   const pairLocalDeviceMutation = usePairLocalDeviceMutation();
@@ -514,18 +515,28 @@ export default function DevicesScreen() {
   };
 
   useEffect(() => {
-    void discoverLocalHubs(true);
-  }, []);
+    if (
+      devicesScreenQuery.isPending ||
+      autoDiscoveryAttemptedRef.current
+    ) {
+      return;
+    }
+
+    autoDiscoveryAttemptedRef.current = true;
+    if (devices.length === 0) {
+      void discoverLocalHubs(true);
+    }
+  }, [devices.length, devicesScreenQuery.isPending]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
+      if (state === "active" && devices.length === 0) {
         void discoverLocalHubs(true);
       }
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [devices.length]);
 
   useEffect(() => {
     if (!activeLocalHub) {
@@ -666,21 +677,28 @@ export default function DevicesScreen() {
     wifiTarget?.kind === "local"
       ? wifiTarget.hub.ipAddress
       : wifiTarget?.device.localIp ?? null;
+  const hasPairedHubs = devices.length > 0;
   const isAutoPairing = isDiscovering || isPairing;
   const hubTitle = isAutoPairing
     ? "Looking for hub"
     : activeLocalHub
       ? "Hub detected"
+      : hasPairedHubs
+        ? "Hub connected"
       : "No hub found";
   const hubDescription = isAutoPairing
     ? "Checking the current WiFi network for a nearby hub."
     : activeLocalHub
       ? "This phone can communicate with the hub on the current network."
+      : hasPairedHubs
+        ? "Manage the connected hub below or pull down to search for another one."
       : discoveryError
         ? discoveryError
       : "Pull down to check the current WiFi network again.";
   const hubMeta = activeLocalHub
     ? `${activeLocalHub.productName} - ${activeLocalHub.ipAddress}`
+    : hasPairedHubs
+      ? `${devices.length} paired hub${devices.length === 1 ? "" : "s"}`
     : null;
 
   return (
@@ -866,7 +884,14 @@ export default function DevicesScreen() {
             <Text className="mb-3 mt-6 text-base font-bold text-[#1F2A37]">
               Connected hubs
             </Text>
-            {isLoading ? null : devices.length === 0 ? (
+            {isLoading ? (
+              <View className="flex-row items-center rounded-[22px] bg-[#F8FBFD] p-4">
+                <ActivityIndicator color="#2477F2" />
+                <Text className="ml-3 text-[13px] font-semibold text-[#7B8794]">
+                  Loading connected hubs...
+                </Text>
+              </View>
+            ) : devices.length === 0 ? (
               <View className="flex-row items-center rounded-[22px] bg-[#F8FBFD] p-4">
                 <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-white">
                   <RouterIcon size={25} color="#7BA7D4" />

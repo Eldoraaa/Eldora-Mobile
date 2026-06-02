@@ -3,6 +3,12 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "@/types/auth.types";
 
+const memoryStorage = {
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
+};
+
 interface AuthState {
   token: string | null;
   user: User | null;
@@ -28,7 +34,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "eldora-auth",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() =>
+        typeof window === "undefined" ? memoryStorage : AsyncStorage
+      ),
       partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {

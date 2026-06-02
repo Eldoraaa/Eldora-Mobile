@@ -32,18 +32,18 @@ function Field({
 }: FieldProps) {
   return (
     <View>
-      <Text className="mb-2 ml-1 text-xs font-bold text-[#6C7A89]">
+      <Text className="mb-2 ml-1 text-xs font-bold text-[#5F6B7A]">
         {label}
       </Text>
-      <View className="h-[54px] flex-row items-center rounded-2xl border border-white bg-[#F6FAFD] px-4">
+      <View className="h-[54px] flex-row items-center rounded-2xl border border-white bg-[#FAF7F2] px-4">
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#A0AEC0"
+          placeholderTextColor="#B8B0A8"
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
-          className="flex-1 py-0 text-[15px] font-semibold text-[#1F2A37]"
+          className="flex-1 py-0 text-[15px] font-semibold text-[#17202A]"
         />
         {right}
       </View>
@@ -106,22 +106,22 @@ export function WifiConfigModal({
           <View className="mb-6 h-1.5 w-12 self-center rounded-full bg-gray-200" />
           <View className="mb-5 flex-row items-center justify-between">
             <View>
-              <Text className="text-xl font-bold text-[#1F2A37]">WiFi</Text>
-              <Text className="mt-1 text-sm text-[#7B8794]">{title}</Text>
+              <Text className="text-xl font-bold text-[#17202A]">WiFi</Text>
+              <Text className="mt-1 text-sm text-[#5F6B7A]">{title}</Text>
             </View>
-            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF7FC]">
-              <Wifi size={23} color="#7BA7D4" />
+            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#FFE7E2]">
+              <Wifi size={23} color="#D95545" />
             </View>
           </View>
 
-          <View className="mb-4 rounded-2xl bg-[#EEF7FC] p-4">
-            <Text className="text-[12px] font-bold uppercase text-[#5D7184]">
+          <View className="mb-4 rounded-2xl bg-[#FAF7F2] p-4">
+            <Text className="text-[12px] font-bold uppercase text-[#5F6B7A]">
               Hub connection
             </Text>
-            <Text className="mt-1 text-sm font-semibold text-[#1F2A37]">
+            <Text className="mt-1 text-sm font-semibold text-[#17202A]">
               {targetIp ?? "Local connection unavailable"}
             </Text>
-            <Text className="mt-1 text-xs text-[#7B8794]">
+            <Text className="mt-1 text-xs text-[#5F6B7A]">
               {showWifiPicker
                 ? "Choose a scanned network, then enter its password."
                 : "Enter the password for the selected network."}
@@ -129,14 +129,14 @@ export function WifiConfigModal({
           </View>
 
           {showWifiPicker ? (
-            <View className="mb-4 rounded-2xl bg-[#F8FBFD] px-4 pb-1 pt-4">
+            <View className="mb-4 rounded-2xl bg-[#FAF7F2] px-4 pb-1 pt-4">
               <View className="mb-2 flex-row items-center justify-between">
                 <View className="flex-1 pr-3">
-                  <Text className="text-[11px] font-bold uppercase text-[#7B8794]">
+                  <Text className="text-[11px] font-bold uppercase text-[#5F6B7A]">
                     Available WiFi
                   </Text>
-                  <Text className="mt-1 text-[13px] font-semibold text-[#1F2A37]">
-                    Select the network this hub should use.
+                  <Text className="mt-1 text-[13px] font-semibold text-[#17202A]">
+                    Select the network Eldora Core should use.
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -145,17 +145,17 @@ export function WifiConfigModal({
                   className="rounded-xl bg-white px-3 py-2"
                   activeOpacity={0.82}
                 >
-                  <Text className="text-[12px] font-bold text-[#2477F2]">
-                    {isScanningWifi ? "Scanning" : "Rescan"}
+                  <Text className="text-[12px] font-bold text-[#D95545]">
+                    {isScanningWifi ? "Checking" : "Refresh"}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               {isScanningWifi ? (
                 <View className="flex-row items-center border-t border-[#EEF3F7] py-3">
-                  <ActivityIndicator color="#2477F2" />
-                  <Text className="ml-3 text-[13px] font-semibold text-[#7B8794]">
-                    Scanning networks near the hub...
+                  <ActivityIndicator color="#D95545" />
+                  <Text className="ml-3 text-[13px] font-semibold text-[#5F6B7A]">
+                    Checking networks near Eldora Core...
                   </Text>
                 </View>
               ) : wifiNetworks.length > 0 ? (
@@ -168,8 +168,8 @@ export function WifiConfigModal({
                 ))
               ) : (
                 <View className="border-t border-[#EEF3F7] py-3">
-                  <Text className="text-[13px] font-semibold text-[#7B8794]">
-                    {wifiScanError ?? "No networks scanned yet."}
+                  <Text className="text-[13px] font-semibold text-[#5F6B7A]">
+                    {wifiScanError ?? "No networks loaded yet."}
                   </Text>
                 </View>
               )}
@@ -178,13 +178,13 @@ export function WifiConfigModal({
 
           <View className="gap-4">
             <View>
-              <Text className="mb-2 ml-1 text-xs font-bold text-[#6C7A89]">
+              <Text className="mb-2 ml-1 text-xs font-bold text-[#5F6B7A]">
                 Selected network
               </Text>
-              <View className="h-[54px] flex-row items-center rounded-2xl bg-[#F6FAFD] px-4">
-                <Wifi size={18} color="#7BA7D4" />
+              <View className="h-[54px] flex-row items-center rounded-2xl bg-[#FAF7F2] px-4">
+                <Wifi size={18} color="#D95545" />
                 <Text
-                  className="ml-3 flex-1 text-[15px] font-bold text-[#1F2A37]"
+                  className="ml-3 flex-1 text-[15px] font-bold text-[#17202A]"
                   numberOfLines={1}
                 >
                   {ssid || "Choose a WiFi network first"}
@@ -206,9 +206,9 @@ export function WifiConfigModal({
                   }
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color="#7B8794" />
+                    <EyeOff size={18} color="#5F6B7A" />
                   ) : (
-                    <Eye size={18} color="#7B8794" />
+                    <Eye size={18} color="#5F6B7A" />
                   )}
                 </TouchableOpacity>
               }
@@ -219,7 +219,7 @@ export function WifiConfigModal({
             <TouchableOpacity
               onPress={onSubmit}
               disabled={isSendingWifi}
-              className="h-14 items-center justify-center rounded-2xl bg-[#2477F2]"
+              className="h-14 items-center justify-center rounded-2xl bg-[#D95545]"
               activeOpacity={0.9}
             >
               {isSendingWifi ? (

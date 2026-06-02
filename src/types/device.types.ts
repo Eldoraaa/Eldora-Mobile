@@ -11,7 +11,35 @@ export interface EldoraDevice {
   wifiRssi: number | null;
   localIp?: string | null;
   firmwareVersion: string | null;
+  sortOrder?: number;
+  isHidden?: boolean;
+  roomCategory?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
   caregiverCount: number;
+}
+
+export interface RoomCategory {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  isDefault: boolean;
+  deviceCount?: number;
+}
+
+export interface CreateRoomCategoryPayload {
+  name: string;
+}
+
+export interface UpdateRoomCategoriesPayload {
+  rooms: Array<{
+    id: string;
+    name?: string;
+    sortOrder?: number;
+  }>;
 }
 
 export interface PairDevicePayload {
@@ -33,6 +61,15 @@ export interface LocalPairDevicePayload extends PairDevicePayload {
 export interface WifiConfigPayload {
   ssid: string;
   password?: string;
+}
+
+export interface DeviceManagementPayload {
+  devices: Array<{
+    id: string;
+    sortOrder?: number;
+    isHidden?: boolean;
+    roomCategoryId?: string | null;
+  }>;
 }
 
 export interface WifiNetwork {

@@ -1,0 +1,100 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { notificationApi } from "@/api/notificationApi";
+import { queryKeys } from "@/lib/queryClient";
+import {
+  ListNotificationsParams,
+  NotificationItem,
+  NotificationPreference,
+  UpdateNotificationPreferencePayload,
+} from "@/types/notification.types";
+
+export function useNotificationsQuery(params: ListNotificationsParams = {}) {
+  return useQuery({
+    queryKey: queryKeys.notifications.list(params.type),
+    queryFn: () => notificationApi.getNotifications(params),
+  });
+}
+
+export function useMarkNotificationReadMutation(type?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (notificationId: string) =>
+      notificationApi.markNotificationRead(notificationId),
+    onMutate: async (notificationId) => {
+      const key = queryKeys.notifications.list(type);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<NotificationItem[]>(key);
+
+      if (previous) {
+        queryClient.setQueryData<NotificationItem[]>(
+          key,
+          previous.map((item) =>
+            item.id === notificationId
+              ? { ...item, readAt: new Date().toISOString() }
+              : item
+          )
+        );
+      }
+
+      return { previous, key };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.key, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications.list(type),
+      });
+    },
+  });
+}
+
+export function useNotificationPreferencesQuery() {
+  return useQuery({
+    queryKey: queryKeys.notifications.preferences,
+    queryFn: notificationApi.getPreferences,
+  });
+}
+
+export function useUpdateNotificationPreferencesMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: UpdateNotificationPreferencePayload) =>
+      notificationApi.updatePreferences(payload),
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.notifications.preferences,
+      });
+      const previous = queryClient.getQueryData<NotificationPreference>(
+        queryKeys.notifications.preferences
+      );
+
+      if (previous) {
+        queryClient.setQueryData<NotificationPreference>(
+          queryKeys.notifications.preferences,
+          { ...previous, ...payload }
+        );
+      }
+
+      return { previous };
+    },
+    onError: (_error, _payload, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(
+          queryKeys.notifications.preferences,
+          context.previous
+        );
+      }
+    },
+    onSuccess: (updatedPreferences) => {
+      queryClient.setQueryData(
+        queryKeys.notifications.preferences,
+        updatedPreferences
+      );
+    },
+  });
+}

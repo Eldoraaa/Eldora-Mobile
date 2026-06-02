@@ -1,5 +1,12 @@
 import React, { useRef, useState } from "react";
-import { View, Text, Image, FlatList, useWindowDimensions, Animated } from "react-native";
+import {
+  Animated,
+  FlatList,
+  Image,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Redirect, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
@@ -7,22 +14,25 @@ import { useAuthStore } from "@/stores/authStore";
 
 const SLIDES = [
   {
-    id: "1",
-    title: "Welcome to Eldora",
-    description: "A trustworthy companion platform that connects families with simple smart care.",
-    image: require("../assets/images/eldora_onboarding.jpg"),
+    id: "check-in",
+    title: "Know they are okay.",
+    description:
+      "See the essentials at a glance: device connection, safety status, and the latest family update.",
+    image: require("../assets/images/eldora_onboarding.png"),
   },
   {
-    id: "2",
-    title: "Smart Monitoring",
-    description: "Keep track of your loved ones' conditions gently and safely from anywhere.",
-    image: require("../assets/images/eldora_onboarding_2.jpg"),
+    id: "urgent-care",
+    title: "Act quickly when it matters.",
+    description:
+      "Fall alerts and urgent device updates are shown clearly, so caregivers can decide the next step fast.",
+    image: require("../assets/images/eldora_onboarding_2.png"),
   },
   {
-    id: "3",
-    title: "Simple Pairing",
-    description: "Connect one hub to multiple caregiver phones from the same WiFi.",
-    image: require("../assets/images/eldora_onboarding_3.jpg"),
+    id: "wellness",
+    title: "Follow care over time.",
+    description:
+      "Short wellness summaries help families notice meaningful changes without turning care into surveillance.",
+    image: require("../assets/images/eldora_onboarding_3.png"),
   },
 ];
 
@@ -31,99 +41,95 @@ export default function OnboardingScreen() {
   const { token } = useAuthStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
-  const slidesRef = useRef<FlatList>(null);
+  const slidesRef = useRef<FlatList<(typeof SLIDES)[0]>>(null);
 
   const viewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems && viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index);
+    if (viewableItems?.length > 0) {
+      setCurrentIndex(viewableItems[0].index ?? 0);
     }
   }).current;
-
-  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
-
-  const scrollToNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
-      slidesRef.current?.scrollToIndex({ index: currentIndex + 1 });
-    } else {
-      router.push("/welcome" as any);
-    }
-  };
 
   if (token) {
     return <Redirect href="/home" />;
   }
 
-  const renderItem = ({ item }: { item: typeof SLIDES[0] }) => (
-    <View style={{ width }} className="items-center justify-start pt-12">
-      <View className="items-center w-full px-6">
-        <Image
-          source={item.image}
-          style={{ width: width - 48, height: 320 }}
-          resizeMode="contain"
-          className="mb-10"
-        />
-        <Text className="text-3xl font-bold text-eldora-text text-center mb-4 leading-tight">
-          {item.title}
-        </Text>
-        <Text className="text-base text-eldora-text-muted text-center leading-relaxed px-4">
-          {item.description}
-        </Text>
-      </View>
-    </View>
-  );
+  const scrollToNext = () => {
+    if (currentIndex < SLIDES.length - 1) {
+      slidesRef.current?.scrollToIndex({ index: currentIndex + 1 });
+      return;
+    }
+
+    router.push("/welcome" as never);
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-eldora-surface">
-      <View className="flex-1">
-        <FlatList
-          data={SLIDES}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-          bounces={false}
-          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-            useNativeDriver: false,
-          })}
-          scrollEventThrottle={32}
-          onViewableItemsChanged={viewableItemsChanged}
-          viewabilityConfig={viewConfig}
-          ref={slidesRef}
-        />
-      </View>
+    <SafeAreaView className="flex-1 bg-white">
+      <FlatList
+        data={SLIDES}
+        horizontal
+        pagingEnabled
+        bounces={false}
+        ref={slidesRef}
+        keyExtractor={(item) => item.id}
+        showsHorizontalScrollIndicator={false}
+        viewabilityConfig={{ viewAreaCoveragePercentThreshold: 55 }}
+        onViewableItemsChanged={viewableItemsChanged}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false },
+        )}
+        scrollEventThrottle={32}
+        renderItem={({ item }) => {
+          return (
+            <View style={{ width }} className="px-6 pt-8">
+              <View className="min-h-[388px] items-center justify-end px-2 pb-3 pt-6">
+                <Image
+                  source={item.image}
+                  style={{ width: "100%", height: Math.min(348, width * 0.86) }}
+                  resizeMode="contain"
+                />
+              </View>
 
+              <Text className="mt-9 text-[32px] font-extrabold leading-10 text-eldora-text">
+                {item.title}
+              </Text>
+              <Text className="mt-4 text-[15px] leading-6 text-eldora-text-muted">
+                {item.description}
+              </Text>
+            </View>
+          );
+        }}
+      />
 
-      <View className="px-6 pb-8 pt-4 justify-end">
-
-        <View className="flex-row justify-center items-center mb-8">
+      <View className="px-6 pb-8 pt-4">
+        <View className="mb-7 flex-row justify-center">
           {SLIDES.map((_, i) => {
             const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-            
             const dotWidth = scrollX.interpolate({
               inputRange,
-              outputRange: [8, 20, 8],
+              outputRange: [8, 24, 8],
               extrapolate: "clamp",
             });
             const opacity = scrollX.interpolate({
               inputRange,
-              outputRange: [0.3, 1, 0.3],
+              outputRange: [0.35, 1, 0.35],
               extrapolate: "clamp",
             });
 
             return (
               <Animated.View
-                key={i.toString()}
-                style={[{ width: dotWidth, opacity }]}
-                className="h-2 rounded-full bg-eldora-coral mx-1.5"
+                key={i}
+                style={{ width: dotWidth, opacity }}
+                className="mx-1 h-2 rounded-full bg-eldora-coral"
               />
             );
           })}
         </View>
 
-
         <Button
-          title={currentIndex === SLIDES.length - 1 ? "Get Started" : "Next"}
+          title={
+            currentIndex === SLIDES.length - 1 ? "Get started" : "Next"
+          }
           onPress={scrollToNext}
         />
       </View>

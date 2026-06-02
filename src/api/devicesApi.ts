@@ -2,9 +2,13 @@ import { deviceService } from "@/services/deviceService";
 import {
   DevicePairingRequest,
   EldoraDevice,
+  DeviceManagementPayload,
+  CreateRoomCategoryPayload,
   LocalPairDevicePayload,
   LocalPairResult,
   LocalProvisioningInfo,
+  RoomCategory,
+  UpdateRoomCategoriesPayload,
   WifiConfigPayload,
   WifiNetwork,
 } from "@/types/device.types";
@@ -16,6 +20,22 @@ export type DevicesScreenData = {
 
 export const devicesApi = {
   getDevices: deviceService.getDevices,
+  getRoomCategories: deviceService.getRoomCategories,
+  createRoomCategory(
+    payload: CreateRoomCategoryPayload,
+    homeId?: string | null
+  ): Promise<RoomCategory> {
+    return deviceService.createRoomCategory(payload, homeId);
+  },
+  updateRoomCategories(
+    payload: UpdateRoomCategoriesPayload,
+    homeId?: string | null
+  ): Promise<RoomCategory[]> {
+    return deviceService.updateRoomCategories(payload, homeId);
+  },
+  deleteRoomCategory(roomId: string, homeId?: string | null): Promise<void> {
+    return deviceService.deleteRoomCategory(roomId, homeId);
+  },
   pairDevice: deviceService.pairDevice,
   pairLocalDevice(payload: LocalPairDevicePayload): Promise<LocalPairResult> {
     return deviceService.pairLocalDevice(payload);
@@ -29,6 +49,11 @@ export const devicesApi = {
   },
   queueWifiConfig(deviceId: string, payload: WifiConfigPayload): Promise<void> {
     return deviceService.queueWifiConfig(deviceId, payload);
+  },
+  updateDeviceManagement(
+    payload: DeviceManagementPayload
+  ): Promise<EldoraDevice[]> {
+    return deviceService.updateDeviceManagement(payload);
   },
   provisionLocalWifi(
     payload: WifiConfigPayload,

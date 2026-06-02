@@ -40,7 +40,7 @@ export const DeviceStatusCard = ({ device }: DeviceStatusCardProps) => (
             </Text>
           </View>
           <View className="flex-row items-center gap-1">
-            <Wifi size={13} color={device.wifiSsid ? "#7BA7D4" : "#8A8A8A"} />
+            <Wifi size={13} color={device.wifiSsid ? "#D95545" : "#8A8A8A"} />
             <Text className="text-[11px] text-eldora-text-muted" numberOfLines={1}>
               {device.wifiSsid ?? "No WiFi"}
             </Text>

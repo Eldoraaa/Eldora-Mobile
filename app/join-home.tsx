@@ -1,0 +1,123 @@
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import Toast from "react-native-toast-message";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import { ArrowRight, ChevronLeft, HousePlus } from "lucide-react-native";
+import { COLORS } from "@/constants/theme";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
+import { useJoinHomeMutation } from "@/hooks/useHomeManagementQueries";
+
+export default function JoinHomeScreen() {
+  const goBack = useBackNavigation("/home-management");
+  const joinHomeMutation = useJoinHomeMutation();
+  const [inviteCode, setInviteCode] = useState("");
+
+  const normalizedCode = inviteCode.trim().toUpperCase();
+  const canSubmit = normalizedCode.length >= 4 && !joinHomeMutation.isPending;
+
+  const joinHome = async () => {
+    if (!canSubmit) return;
+
+    try {
+      const home = await joinHomeMutation.mutateAsync({
+        inviteCode: normalizedCode,
+      });
+      Toast.show({
+        type: "success",
+        text1: "Home joined",
+        text2: `${home.name} is now available.`,
+      });
+      router.replace("/home-management");
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not join home",
+        text2: error.response?.data?.message ?? "Check the invitation code.",
+      });
+    }
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-white">
+      <KeyboardAvoidingView
+        className="mx-auto w-full max-w-[430px] flex-1 bg-white"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View className="h-[72px] flex-row items-center px-5">
+          <Pressable
+            className="h-11 w-11 items-center justify-center"
+            accessibilityRole="button"
+            onPress={goBack}
+          >
+            <ChevronLeft size={30} color={COLORS.text} strokeWidth={2.4} />
+          </Pressable>
+          <Text
+            className="flex-1 pr-11 text-center text-[22px] font-extrabold"
+            style={{ color: COLORS.text }}
+          >
+            Join a home
+          </Text>
+        </View>
+
+        <View className="flex-1 px-8 pt-14">
+          <View className="items-center">
+            <View className="h-[76px] w-[76px] items-center justify-center rounded-[24px] bg-[#FFE7E2]">
+              <HousePlus size={43} color={COLORS.coral} strokeWidth={2.4} />
+            </View>
+
+            <Text
+              className="mt-6 max-w-[315px] text-center text-[17px] font-normal leading-[23px]"
+              style={{ color: COLORS.muted }}
+            >
+              Please contact the administrator to get an invitation (Home
+              Settings &gt; Add Member)
+            </Text>
+          </View>
+
+          <View
+            className="mx-5 mt-7 h-[54px] flex-row items-center rounded-[5px] border px-4"
+            style={{ borderColor: COLORS.line }}
+          >
+            <TextInput
+              className="flex-1 text-center text-[17px] font-normal"
+              style={{ color: COLORS.text }}
+              value={inviteCode}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              placeholder="Invitation code"
+              placeholderTextColor={COLORS.disabled}
+              returnKeyType="go"
+              onChangeText={setInviteCode}
+              onSubmitEditing={joinHome}
+            />
+            <Pressable
+              className="h-10 w-10 items-center justify-center"
+              accessibilityRole="button"
+              disabled={!canSubmit}
+              onPress={joinHome}
+            >
+              {joinHomeMutation.isPending ? (
+                <ActivityIndicator color={COLORS.coral} />
+              ) : (
+                <ArrowRight
+                  size={24}
+                  color={canSubmit ? COLORS.coral : COLORS.line}
+                  strokeWidth={2.5}
+                />
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}

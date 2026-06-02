@@ -1,26 +1,32 @@
 import React, { useEffect } from "react";
 import { BackHandler, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
-import { Home, LucideIcon, Router as RouterIcon } from "lucide-react-native";
+import {
+  CheckSquare,
+  Home,
+  LucideIcon,
+  UserRound,
+} from "lucide-react-native";
 
-export type BottomNavRoute = "home" | "devices";
+export type BottomNavRoute = "home" | "scene" | "me";
 
 type BottomNavProps = {
   active: BottomNavRoute;
   bordered?: boolean;
 };
 
-const ICON_SIZE = 25;
-const ICON_STROKE_WIDTH = 2.25;
+const ICON_SIZE = 23;
+const ICON_STROKE_WIDTH = 2.15;
 
 const TABS: Array<{
   route: BottomNavRoute;
   label: string;
-  href: "/home" | "/devices";
+  href: "/home" | "/scene" | "/settings";
   Icon: LucideIcon;
 }> = [
   { route: "home", label: "Home", href: "/home", Icon: Home },
-  { route: "devices", label: "Hub", href: "/devices", Icon: RouterIcon },
+  { route: "scene", label: "Scene", href: "/scene", Icon: CheckSquare },
+  { route: "me", label: "Me", href: "/settings", Icon: UserRound },
 ];
 
 export function BottomNav({ active, bordered = false }: BottomNavProps) {
@@ -29,7 +35,7 @@ export function BottomNav({ active, bordered = false }: BottomNavProps) {
       "hardwareBackPress",
       () => {
         if (active === "home") {
-          BackHandler.exitApp();
+          return true;
         } else {
           router.replace("/home" as never);
         }
@@ -43,7 +49,7 @@ export function BottomNav({ active, bordered = false }: BottomNavProps) {
 
   return (
     <View
-      className={`h-[62px] w-full flex-row items-center bg-white px-4 ${
+      className={`h-[72px] w-full flex-row items-center bg-white px-8 ${
         bordered ? "border-t border-[#F1F1F1]" : ""
       }`}
     >
@@ -73,7 +79,7 @@ function BottomNavItem({
   active: boolean;
   onPress: () => void;
 }) {
-  const color = active ? "#252D36" : "#777873";
+  const color = active ? "#D95545" : "#5F6B7A";
 
   return (
     <Pressable
@@ -83,10 +89,7 @@ function BottomNavItem({
       onPress={onPress}
     >
       <View className="items-center">
-        <View className="h-9 w-12 items-center justify-center">
-          {active ? (
-            <View className="absolute h-8 w-11 rounded-full bg-[#EAF5FB]" />
-          ) : null}
+        <View className="h-8 w-12 items-center justify-center">
           <Icon
             size={ICON_SIZE}
             color={color}
@@ -94,8 +97,8 @@ function BottomNavItem({
           />
         </View>
         <Text
-          className={`mt-[2px] text-[11px] font-semibold leading-4 ${
-            active ? "text-[#252D36]" : "text-[#777873]"
+          className={`mt-[2px] text-[12px] font-semibold leading-4 ${
+            active ? "text-[#D95545]" : "text-[#5F6B7A]"
           }`}
           numberOfLines={1}
         >

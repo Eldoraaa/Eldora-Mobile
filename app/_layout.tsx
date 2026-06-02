@@ -77,18 +77,18 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
     <View
       style={{
         flex: 1,
-        backgroundColor: "#FDF8F5",
+        backgroundColor: "#FFFFFF",
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 24,
       }}
     >
-      <Text style={{ color: "#1F2A37", fontSize: 22, fontWeight: "700" }}>
+      <Text style={{ color: "#17202A", fontSize: 22, fontWeight: "700" }}>
         Eldora needs a reload
       </Text>
       <Text
         style={{
-          color: "#7B8794",
+          color: "#5F6B7A",
           fontSize: 13,
           lineHeight: 20,
           marginTop: 10,
@@ -104,7 +104,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
           height: 46,
           paddingHorizontal: 22,
           borderRadius: 16,
-          backgroundColor: "#2477F2",
+          backgroundColor: "#D95545",
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -136,9 +136,25 @@ export default function RootLayout() {
           </Stack.Protected>
           <Stack.Protected guard={!!token}>
             <Stack.Screen name="home" options={{ animation: "none" }} />
-            <Stack.Screen name="devices" options={{ animation: "none" }} />
+            <Stack.Screen name="alerts" options={{ animation: "none" }} />
+            <Stack.Screen name="alert-detail" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="add-device" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="device-setup" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="device-detail" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="create-scene" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="scene-builder" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="device-management" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="home-management" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="home-settings" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="home-location" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="home-member" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="room-management" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="scene" options={{ animation: "none" }} />
             <Stack.Screen name="settings" options={{ animation: "none" }} />
             <Stack.Screen name="account" options={{ animation: "none" }} />
+            <Stack.Screen name="account-security" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="notification-settings" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="personal-information" options={{ animation: "slide_from_right" }} />
           </Stack.Protected>
         </Stack>
         <Toast config={toastConfig} position="top" topOffset={60} />

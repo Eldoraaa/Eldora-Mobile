@@ -9,9 +9,9 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/images/eldora_logo.png",
+      "image": "./assets/images/eldora_logo_nobg.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FDF8F5"
+      "backgroundColor": "#F6F1EC"
     },
     "ios": {
       "supportsTablet": true,
@@ -34,7 +34,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/eldora_logo.png",
-        "backgroundColor": "#FDF8F5"
+        "backgroundColor": "#FFFFFF"
       },
       "package": "com.eldora.app",
       "edgeToEdgeEnabled": false,
@@ -51,18 +51,18 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FDF8F5",
-          "image": "./assets/images/eldora_logo.png",
-          "imageWidth": 180,
+          "backgroundColor": "#F6F1EC",
+          "image": "./assets/images/eldora_logo_nobg.png",
+          "imageWidth": 72,
           "resizeMode": "contain",
           "android": {
-            "backgroundColor": "#FDF8F5",
-            "image": "./assets/images/eldora_logo.png",
-            "imageWidth": 180
+            "backgroundColor": "#F6F1EC",
+            "image": "./assets/images/eldora_logo_nobg.png",
+            "imageWidth": 72
           },
           "ios": {
-            "backgroundColor": "#FDF8F5",
-            "image": "./assets/images/eldora_logo.png",
+            "backgroundColor": "#F6F1EC",
+            "image": "./assets/images/eldora_logo_nobg.png",
             "resizeMode": "contain"
           }
         }

@@ -89,4 +89,9 @@ export const authService = {
     );
     return response.data.data;
   },
+
+  async deleteAccount(): Promise<void> {
+    await apiClient.delete<ApiResponse<null>>(ENDPOINTS.DELETE_ACCOUNT);
+    await auth().signOut().catch(() => undefined);
+  },
 };

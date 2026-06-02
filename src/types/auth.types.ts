@@ -20,4 +20,5 @@ export interface User {
   name: string;
   email: string;
   role: "family" | "caregiver" | "admin";
+  avatarUrl?: string | null;
 }

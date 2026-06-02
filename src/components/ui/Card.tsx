@@ -8,8 +8,17 @@ interface CardProps extends ViewProps {
 
 export const Card = ({ children, className, style, ...props }: CardProps) => (
   <View
-    className={`bg-white rounded-3xl p-5 ${className ?? ""}`}
-    style={[{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 }, style]}
+    className={`rounded-[22px] border border-eldora-line bg-white p-5 ${className ?? ""}`}
+    style={[
+      {
+        shadowColor: "#17202A",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 18,
+        elevation: 2,
+      },
+      style,
+    ]}
     {...props}
   >
     {children}

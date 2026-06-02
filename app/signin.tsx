@@ -1,27 +1,21 @@
 import React from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  useWindowDimensions,
-  Image,
-  TextInput,
-} from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { Image, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Toast from "react-native-toast-message";
-import { useForm, Controller } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Redirect, router } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
+import { AuthField } from "@/components/auth/AuthField";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/stores/authStore";
 import { authService } from "@/services/authService";
-import { Redirect, router } from "expo-router";
-import { ChevronLeft, Lock, Mail } from "lucide-react-native";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email format"),
+  email: z.string().email("Use a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -30,6 +24,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function SigninScreen() {
   const { width } = useWindowDimensions();
   const { token, setAuth, setLoading, isLoading } = useAuthStore();
+  const goBack = useBackNavigation("/welcome");
 
   const {
     control,
@@ -49,7 +44,7 @@ export default function SigninScreen() {
     } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: "Login Failed",
+        text1: "Login failed",
         text2: err.response?.data?.message ?? "Invalid email or password",
       });
     } finally {
@@ -63,126 +58,120 @@ export default function SigninScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior="translate-with-padding"
+      <KeyboardAwareScrollView
+        bottomOffset={24}
+        extraKeyboardSpace={18}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: 32,
+        }}
       >
-        <ScrollView
-          className="flex-1 flex-grow"
-          contentContainerClassName="pt-4 px-8 pb-8"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <TouchableOpacity
+          onPress={goBack}
+          className="-ml-2 h-11 w-11 items-center justify-center"
+          accessibilityLabel="Go back"
+          activeOpacity={0.75}
         >
+          <ChevronLeft color="#17202A" size={30} />
+        </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={() => router.back()} 
-            className="w-10 h-10 justify-center mb-2 -ml-2"
-          >
-            <ChevronLeft color="#111827" size={28} />
-          </TouchableOpacity>
+        <View className="mt-1 items-center">
+          <Image
+            source={require("../assets/images/login_character.png")}
+            style={{
+              width: Math.min(260, width * 0.66),
+              height: Math.min(220, width * 0.56),
+            }}
+            resizeMode="contain"
+          />
+        </View>
 
+        <View className="mt-6">
+          <Text className="text-[32px] font-extrabold leading-10 text-eldora-text">
+            Welcome back
+          </Text>
+          <Text className="mt-2 text-[15px] leading-6 text-eldora-text-muted">
+            Sign in to view alerts, device status, and wellness updates.
+          </Text>
+        </View>
 
-          <View className="items-center justify-center mb-8">
-            <Image
-              source={require("../assets/images/login_character.jpg")}
-              style={{ width: width * 0.7, height: width * 0.6 }}
-              resizeMode="contain"
-            />
-          </View>
-
-
-          <View className="mb-8">
-            <Text className="text-[28px] font-bold text-gray-900 mb-2">
-              Welcome back
-            </Text>
-            <Text className="text-gray-500 text-[15px] leading-relaxed pr-4">
-              Please enter your details to sign in and continue your logistics journey.
-            </Text>
-          </View>
-
-
-          <View className="gap-5 mt-2">
-
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View>
-                  <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">Email Address</Text>
-                  <View className={`flex-row items-center bg-[#F9FAFB] border ${errors.email ? 'border-red-400' : 'border-gray-200'} rounded-lg h-14 px-4`}>
-                    <Mail size={20} color="#9ca3af" className="mr-3" />
-                    <TextInput
-                      placeholder="Enter your email"
-                      placeholderTextColor="#9ca3af"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      className="flex-1 bg-transparent text-[15px] font-medium text-gray-900 py-0"
-                    />
-                  </View>
-                  {errors.email?.message ? (
-                    <Text className="text-red-500 text-xs mt-1">{errors.email.message}</Text>
-                  ) : null}
-                </View>
-              )}
-            />
-
-
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View>
-                  <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">Password</Text>
-                  <View className={`flex-row items-center bg-[#F9FAFB] border ${errors.password ? 'border-red-400' : 'border-gray-200'} rounded-lg h-14 px-4`}>
-                    <Lock size={20} color="#9ca3af" className="mr-3" />
-                    <TextInput
-                      placeholder="Enter password"
-                      placeholderTextColor="#9ca3af"
-                      secureTextEntry
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      className="flex-1 bg-transparent text-[15px] font-medium text-gray-900 py-0"
-                    />
-                  </View>
-                  {errors.password?.message ? (
-                    <Text className="text-red-500 text-xs mt-1">{errors.password.message}</Text>
-                  ) : null}
-                </View>
-              )}
-            />
-          </View>
-
-
-          <TouchableOpacity className="items-end mt-4 mb-8">
-            <Text className="text-eldora-coral font-bold text-xs">
-              Forgot Password?
-            </Text>
-          </TouchableOpacity>
-
-
-          <Button
-            title="Login"
-            onPress={handleSubmit(onSubmit)}
-            isLoading={isLoading}
-            className="h-14 w-full shadow-lg shadow-red-500/30 rounded-xl"
+        <View className="mt-7 gap-4">
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AuthField
+                label="Email address"
+                error={errors.email?.message}
+              >
+                <TextInput
+                  placeholder="name@example.com"
+                  placeholderTextColor="#6F7A87"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  className="flex-1 py-0 text-[15px] font-semibold text-eldora-text"
+                />
+              </AuthField>
+            )}
           />
 
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AuthField
+                label="Password"
+                error={errors.password?.message}
+              >
+                <TextInput
+                  placeholder="Enter password"
+                  placeholderTextColor="#6F7A87"
+                  secureTextEntry
+                  autoComplete="current-password"
+                  textContentType="password"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  className="flex-1 py-0 text-[15px] font-semibold text-eldora-text"
+                />
+              </AuthField>
+            )}
+          />
+        </View>
 
-          <View className="flex-row justify-center mt-12 mb-4">
-            <Text className="text-gray-500 text-xs font-medium">
-              New to Eldora?{" "}
+        <TouchableOpacity className="mt-4 items-end" activeOpacity={0.8}>
+          <Text className="text-[13px] font-bold text-eldora-coral">
+            Forgot password?
+          </Text>
+        </TouchableOpacity>
+
+        <Button
+          title="Sign in"
+          onPress={handleSubmit(onSubmit)}
+          isLoading={isLoading}
+          className="mt-8"
+        />
+
+        <View className="mt-8 flex-row justify-center">
+          <Text className="text-[13px] font-semibold text-eldora-text-muted">
+            New to Eldora?{" "}
+          </Text>
+          <TouchableOpacity onPress={() => router.push("/signup")}>
+            <Text className="text-[13px] font-bold text-eldora-coral">
+              Create account
             </Text>
-            <TouchableOpacity onPress={() => router.push("/signup")}>
-              <Text className="text-eldora-coral font-bold text-xs">Register</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

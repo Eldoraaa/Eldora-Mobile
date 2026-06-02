@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, Text, ActivityIndicator } from "react-native";
+import { TouchableOpacity, Text, ActivityIndicator, View } from "react-native";
 
 interface ButtonProps {
   title: string;
@@ -8,6 +8,7 @@ interface ButtonProps {
   isLoading?: boolean;
   disabled?: boolean;
   className?: string;
+  icon?: React.ReactNode;
 }
 
 export const Button = ({
@@ -17,19 +18,20 @@ export const Button = ({
   isLoading,
   disabled,
   className,
+  icon,
 }: ButtonProps) => {
   const baseClass =
-    "rounded-lg py-4 px-8 items-center justify-center min-h-[56px]";
+    "rounded-2xl py-4 px-6 items-center justify-center min-h-[54px]";
 
   const variantClass = {
     primary: "bg-eldora-coral active:opacity-80",
-    secondary: "bg-eldora-blue-light border border-eldora-blue active:opacity-80",
+    secondary: "bg-white border border-eldora-line active:opacity-80",
     ghost: "bg-transparent",
   }[variant];
 
   const textClass = {
     primary: "text-white",
-    secondary: "text-eldora-blue",
+    secondary: "text-eldora-coral",
     ghost: "text-eldora-text",
   }[variant];
 
@@ -42,10 +44,15 @@ export const Button = ({
     >
       {isLoading ? (
         <ActivityIndicator
-          color={variant === "primary" ? "white" : "#7BA7D4"}
+          color={variant === "primary" ? "white" : "#D95545"}
         />
       ) : (
-        <Text className={`text-base font-semibold ${textClass}`}>{title}</Text>
+        <View className="flex-row items-center justify-center gap-2">
+          {icon}
+          <Text className={`text-[15px] font-bold ${textClass}`}>
+            {title}
+          </Text>
+        </View>
       )}
     </TouchableOpacity>
   );

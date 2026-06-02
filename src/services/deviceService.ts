@@ -6,10 +6,14 @@ import { ApiResponse } from "@/types/api.types";
 import {
   DevicePairingRequest,
   EldoraDevice,
+  DeviceManagementPayload,
+  CreateRoomCategoryPayload,
   LocalPairDevicePayload,
   LocalPairResult,
   LocalProvisioningInfo,
   PairDevicePayload,
+  RoomCategory,
+  UpdateRoomCategoriesPayload,
   WifiConfigPayload,
   WifiNetwork,
 } from "@/types/device.types";
@@ -153,6 +157,45 @@ export const deviceService = {
     return response.data.data;
   },
 
+  async getRoomCategories(homeId?: string | null): Promise<RoomCategory[]> {
+    const response = await apiClient.get<ApiResponse<RoomCategory[]>>(
+      ENDPOINTS.ROOM_CATEGORIES,
+      { params: homeId ? { homeId } : undefined }
+    );
+    return response.data.data;
+  },
+
+  async createRoomCategory(
+    payload: CreateRoomCategoryPayload,
+    homeId?: string | null
+  ): Promise<RoomCategory> {
+    const response = await apiClient.post<ApiResponse<RoomCategory>>(
+      ENDPOINTS.ROOM_CATEGORIES,
+      payload,
+      { params: homeId ? { homeId } : undefined }
+    );
+    return response.data.data;
+  },
+
+  async updateRoomCategories(
+    payload: UpdateRoomCategoriesPayload,
+    homeId?: string | null
+  ): Promise<RoomCategory[]> {
+    const response = await apiClient.patch<ApiResponse<RoomCategory[]>>(
+      ENDPOINTS.ROOM_CATEGORIES,
+      payload,
+      { params: homeId ? { homeId } : undefined }
+    );
+    return response.data.data;
+  },
+
+  async deleteRoomCategory(roomId: string, homeId?: string | null): Promise<void> {
+    await apiClient.delete<ApiResponse<null>>(
+      `${ENDPOINTS.ROOM_CATEGORIES}/${roomId}`,
+      { params: homeId ? { homeId } : undefined }
+    );
+  },
+
   async pairDevice(payload: PairDevicePayload): Promise<EldoraDevice> {
     const response = await apiClient.post<ApiResponse<EldoraDevice>>(
       ENDPOINTS.PAIR_DEVICE,
@@ -209,6 +252,16 @@ export const deviceService = {
       `${ENDPOINTS.DEVICES}/${deviceId}/wifi`,
       payload
     );
+  },
+
+  async updateDeviceManagement(
+    payload: DeviceManagementPayload
+  ): Promise<EldoraDevice[]> {
+    const response = await apiClient.patch<ApiResponse<EldoraDevice[]>>(
+      ENDPOINTS.DEVICE_MANAGEMENT,
+      payload
+    );
+    return response.data.data;
   },
 
   async provisionLocalWifi(

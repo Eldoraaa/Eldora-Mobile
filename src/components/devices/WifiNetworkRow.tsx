@@ -1,13 +1,9 @@
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { Wifi } from "lucide-react-native";
+import { COLORS } from "@/constants/theme";
 import { WifiNetwork } from "@/types/device.types";
-
-function wifiStrengthLabel(rssi: number) {
-  if (rssi >= -55) return "Strong";
-  if (rssi >= -70) return "Fair";
-  return "Weak";
-}
+import { signalLabel } from "@/utils/device.utils";
 
 type WifiNetworkRowProps = {
   network: WifiNetwork;
@@ -22,18 +18,27 @@ export function WifiNetworkRow({ network, onPress }: WifiNetworkRowProps) {
       activeOpacity={0.82}
     >
       <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl bg-white">
-        <Wifi size={18} color="#7BA7D4" />
+        <Wifi size={18} color={COLORS.coral} />
       </View>
       <View className="flex-1">
-        <Text className="text-[14px] font-bold text-[#1F2A37]" numberOfLines={1}>
+        <Text
+          className="text-[14px] font-bold"
+          style={{ color: COLORS.text }}
+          numberOfLines={1}
+        >
           {network.ssid}
         </Text>
-        <Text className="mt-0.5 text-[12px] font-semibold text-[#7B8794]">
-          {wifiStrengthLabel(network.rssi)}
+        <Text
+          className="mt-0.5 text-[12px] font-semibold"
+          style={{ color: COLORS.muted }}
+        >
+          {signalLabel(network.rssi)}
           {network.secure ? " - Secured" : " - Open"}
         </Text>
       </View>
-      <Text className="text-[12px] font-bold text-[#2477F2]">Select</Text>
+      <Text className="text-[12px] font-bold" style={{ color: COLORS.coral }}>
+        Select
+      </Text>
     </TouchableOpacity>
   );
 }

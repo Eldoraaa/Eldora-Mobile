@@ -46,8 +46,8 @@ export function useGoogleAuth() {
 
       // Sign into Firebase with Google credentials to get a Firebase token
       const googleCredential = auth.GoogleAuthProvider.credential(googleIdToken);
-      await auth().signInWithCredential(googleCredential);
-      const firebaseToken = await auth().currentUser?.getIdToken();
+      const credential = await auth().signInWithCredential(googleCredential);
+      const firebaseToken = await credential.user.getIdToken(true);
 
       if (!firebaseToken) {
         throw new Error("Failed to get Firebase token");

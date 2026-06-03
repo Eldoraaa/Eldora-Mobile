@@ -1,16 +1,20 @@
-import React, { useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
+import Toast from "react-native-toast-message";
 import { Bell, CheckCircle2, Home, MapPin, Router, ShieldAlert } from "lucide-react-native";
 import { ScreenHeader } from "@/components/navigation/ScreenHeader";
 import { COLORS } from "@/constants/theme";
 import {
   useMarkNotificationReadMutation,
-  useNotificationsQuery,
+  useNotificationQuery,
+  useRespondNotificationMutation,
+  useResolveNotificationMutation,
 } from "@/hooks/useNotificationQueries";
+import { useSafetySummaryQuery } from "@/hooks/useHomeManagementQueries";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
-import type { NotificationItem, NotificationType } from "@/types/notification.types";
+import type { NotificationType } from "@/types/notification.types";
 import { formatRelativeTime } from "@/utils/formatters";
 
 function asString(value: unknown) {
@@ -104,30 +108,29 @@ function ActionButton({
   );
 }
 
-function findNotification(lists: Array<NotificationItem[] | undefined>, id?: string) {
-  if (!id) return undefined;
-  return lists.flatMap((list) => list ?? []).find((item) => item.id === id);
-}
-
 export default function AlertDetailScreen() {
   const goBack = useBackNavigation("/alerts");
+  const [responseNote, setResponseNote] = useState("");
   const params = useLocalSearchParams<{ id?: string; type?: NotificationType }>();
-  const alarmQuery = useNotificationsQuery({ type: "alarm" });
-  const homeQuery = useNotificationsQuery({ type: "home" });
-  const deviceQuery = useNotificationsQuery({ type: "device" });
-  const notification = useMemo(
-    () => findNotification([alarmQuery.data, homeQuery.data, deviceQuery.data], params.id),
-    [alarmQuery.data, deviceQuery.data, homeQuery.data, params.id]
-  );
-  const markRead = useMarkNotificationReadMutation(notification?.type ?? params.type);
-  const loading = alarmQuery.isLoading || homeQuery.isLoading || deviceQuery.isLoading;
+  const notificationQuery = useNotificationQuery(params.id);
+  const notification = notificationQuery.data;
+  const safetySummaryQuery = useSafetySummaryQuery(notification?.home?.id);
+  const notificationType = notification?.type ?? params.type;
+  const markRead = useMarkNotificationReadMutation(notificationType);
+  const respondNotification = useRespondNotificationMutation(notificationType);
+  const resolveNotification = useResolveNotificationMutation(notificationType);
+  const loading = notificationQuery.isLoading;
   const metadata = notification?.metadata ?? {};
   const eventType = asString(metadata.eventType);
   const severity = asString(metadata.severity);
   const sound = asString(metadata.sound);
+  const resolvedAt = asString(metadata.resolvedAt);
   const occurredAt = asString(metadata.occurredAt);
   const confidence = asNumber(metadata.confidence);
   const location = getLocationLabel(metadata.location);
+  const responseStatus = asString(metadata.responseStatus);
+  const showCallAction = metadata.showCallAction === true || notification?.type === "alarm";
+  const emergencyContact = safetySummaryQuery.data?.emergencyContact ?? null;
   const isCritical = severity === "critical" || notification?.type === "alarm";
 
   if (loading && !notification) {
@@ -192,6 +195,8 @@ export default function AlertDetailScreen() {
           <View className="mt-7 rounded-[24px] bg-white px-1">
             <DetailRow label="Received" value={`${formatDateTime(notification.createdAt)} · ${formatRelativeTime(notification.createdAt)}`} />
             {occurredAt ? <DetailRow label="Event time" value={formatDateTime(occurredAt)} /> : null}
+            {responseStatus ? <DetailRow label="Response status" value={formatMetadataLabel(responseStatus)} /> : null}
+            {resolvedAt ? <DetailRow label="Resolved" value={formatDateTime(resolvedAt)} /> : null}
             <DetailRow label="Type" value={formatMetadataLabel(eventType ?? notification.type)} />
             {severity ? <DetailRow label="Severity" value={formatMetadataLabel(severity)} /> : null}
             {confidence !== null ? <DetailRow label="Confidence" value={`${Math.round(confidence * 100)}%`} /> : null}
@@ -206,8 +211,38 @@ export default function AlertDetailScreen() {
             {sound ? <DetailRow label="Alert sound" value={formatMetadataLabel(sound)} /> : null}
           </View>
 
+          {(notification.responses ?? []).length > 0 ? (
+            <View className="mt-8">
+              <Text className="mb-1 text-[15px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                Response timeline
+              </Text>
+              {(notification.responses ?? []).map((response) => (
+                <DetailRow
+                  key={response.id}
+                  label={formatMetadataLabel(response.status)}
+                  value={`${formatDateTime(response.createdAt)}${response.note ? ` · ${response.note}` : ""}`}
+                />
+              ))}
+            </View>
+          ) : null}
+
           <View className="mt-8">
             <Text className="mb-1 text-[15px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+              Response note
+            </Text>
+            <TextInput
+              value={responseNote}
+              onChangeText={setResponseNote}
+              placeholder="Optional note for family, e.g. I am calling now"
+              placeholderTextColor={COLORS.disabled}
+              className="mt-3 min-h-[72px] rounded-[18px] border px-4 py-3 text-[14px] font-semibold"
+              style={{ borderColor: COLORS.line, color: COLORS.text, textAlignVertical: "top" }}
+              multiline
+              maxLength={240}
+              accessibilityLabel="Alert response note"
+            />
+
+            <Text className="mb-1 mt-7 text-[15px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
               Actions
             </Text>
             <ActionButton
@@ -217,6 +252,73 @@ export default function AlertDetailScreen() {
               disabled={!!notification.readAt || markRead.isPending}
               onPress={() => markRead.mutate(notification.id)}
             />
+            <ActionButton
+              title="Acknowledge alert"
+              description="Let other caregivers know this alert is being reviewed."
+              Icon={CheckCircle2}
+              disabled={!!resolvedAt || respondNotification.isPending}
+              onPress={() =>
+                respondNotification.mutate(
+                  { notificationId: notification.id, status: "acknowledged", note: responseNote.trim() || undefined },
+                  {
+                    onSuccess: () => Toast.show({ type: "success", text1: "Alert acknowledged" }),
+                    onError: () => Toast.show({ type: "error", text1: "Could not update alert" }),
+                  }
+                )
+              }
+            />
+            <ActionButton
+              title="I'm on the way"
+              description="Mark this alert as actively being handled."
+              Icon={CheckCircle2}
+              disabled={!!resolvedAt || respondNotification.isPending}
+              onPress={() =>
+                respondNotification.mutate(
+                  { notificationId: notification.id, status: "en_route", note: responseNote.trim() || undefined },
+                  {
+                    onSuccess: () => Toast.show({ type: "success", text1: "Response updated" }),
+                    onError: () => Toast.show({ type: "error", text1: "Could not update alert" }),
+                  }
+                )
+              }
+            />
+            <ActionButton
+              title={resolvedAt ? "Already marked as resolved" : "Mark as resolved"}
+              description="Confirm that this alert has been handled."
+              Icon={CheckCircle2}
+              disabled={!!resolvedAt || resolveNotification.isPending}
+              onPress={() =>
+                resolveNotification.mutate(notification.id, {
+                  onSuccess: () =>
+                    Toast.show({ type: "success", text1: "Alert resolved" }),
+                  onError: () =>
+                    Toast.show({
+                      type: "error",
+                      text1: "Alert was not resolved",
+                      text2: "Please try again in a moment.",
+                    }),
+                })
+              }
+            />
+            {showCallAction ? (
+              <ActionButton
+                title={emergencyContact ? `Call ${emergencyContact.name}` : "Add emergency contact"}
+                description={
+                  emergencyContact
+                    ? `Open phone dialer for ${emergencyContact.phone}.`
+                    : "Add a contact first to enable one-tap emergency calling."
+                }
+                Icon={Router}
+                onPress={() => {
+                  if (emergencyContact) {
+                    respondNotification.mutate({ notificationId: notification.id, status: "calling", note: responseNote.trim() || undefined });
+                    void Linking.openURL(`tel:${emergencyContact.phone}`);
+                    return;
+                  }
+                  router.push("/home-settings" as never);
+                }}
+              />
+            ) : null}
             <ActionButton
               title="View related device"
               description="Open the paired device detail page for this alert."

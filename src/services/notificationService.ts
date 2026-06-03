@@ -19,8 +19,26 @@ export const notificationService = {
     return response.data.data;
   },
 
+  async getNotification(notificationId: string): Promise<NotificationItem> {
+    const response = await apiClient.get<ApiResponse<NotificationItem>>(
+      `${ENDPOINTS.NOTIFICATIONS}/${notificationId}`
+    );
+    return response.data.data;
+  },
+
   async markNotificationRead(notificationId: string): Promise<void> {
     await apiClient.patch(`${ENDPOINTS.NOTIFICATIONS}/${notificationId}/read`);
+  },
+
+  async respondNotification(
+    notificationId: string,
+    payload: { status: "acknowledged" | "calling" | "en_route" | "resolved"; note?: string }
+  ): Promise<void> {
+    await apiClient.patch(`${ENDPOINTS.NOTIFICATIONS}/${notificationId}/respond`, payload);
+  },
+
+  async resolveNotification(notificationId: string): Promise<void> {
+    await apiClient.patch(`${ENDPOINTS.NOTIFICATIONS}/${notificationId}/resolve`);
   },
 
   async markAllNotificationsRead(): Promise<void> {

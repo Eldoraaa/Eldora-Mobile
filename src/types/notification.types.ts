@@ -29,6 +29,13 @@ export type NotificationItem = {
   createdAt: string;
   home: { id: string; name: string } | null;
   device: { id: string; deviceId: string; name: string | null } | null;
+  responses?: Array<{
+    id: string;
+    status: string;
+    note: string | null;
+    createdAt: string;
+    userId: string;
+  }>;
 };
 
 export type ListNotificationsParams = {

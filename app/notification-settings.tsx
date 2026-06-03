@@ -29,6 +29,28 @@ export default function NotificationSettingsScreen() {
             className="px-8 pb-4 pt-4 text-[15px] font-semibold leading-5"
             style={{ color: COLORS.muted }}
           >
+            System
+          </Text>
+
+          <NotificationPreferenceRow
+            title="System Notifications"
+            subtitle="Allow Eldora to send push notifications."
+            toggleValue={preferences?.systemNotificationEnabled ?? true}
+            onToggle={(value) =>
+              updatePreferences.mutate({ systemNotificationEnabled: value })
+            }
+          />
+          <NotificationPreferenceRow
+            title="Do Not Disturb"
+            subtitle="Pause notifications during your saved quiet hours."
+            toggleValue={preferences?.dndEnabled ?? false}
+            onToggle={(value) => updatePreferences.mutate({ dndEnabled: value })}
+          />
+
+          <Text
+            className="px-8 pb-4 pt-8 text-[15px] font-semibold leading-5"
+            style={{ color: COLORS.muted }}
+          >
             Alerts
           </Text>
 
@@ -39,6 +61,18 @@ export default function NotificationSettingsScreen() {
             onToggle={(value) =>
               updatePreferences.mutate({ fallAlertEnabled: value })
             }
+          />
+          <NotificationPreferenceRow
+            title="SOS Alert"
+            subtitle="Notify when an elder manually asks for help."
+            toggleValue={preferences?.sosAlertEnabled ?? true}
+            onToggle={(value) => updatePreferences.mutate({ sosAlertEnabled: value })}
+          />
+          <NotificationPreferenceRow
+            title="Home Alerts"
+            subtitle="Notify for home updates and caregiver activity."
+            toggleValue={preferences?.homeAlertEnabled ?? true}
+            onToggle={(value) => updatePreferences.mutate({ homeAlertEnabled: value })}
           />
           <NotificationPreferenceRow
             title="Pairing Request"
@@ -63,6 +97,20 @@ export default function NotificationSettingsScreen() {
             onToggle={(value) =>
               updatePreferences.mutate({ deviceOfflineAlertEnabled: value })
             }
+          />
+          <NotificationPreferenceRow
+            title="Low Battery"
+            subtitle="Notify when a device reports low battery."
+            toggleValue={preferences?.lowBatteryAlertEnabled ?? true}
+            onToggle={(value) =>
+              updatePreferences.mutate({ lowBatteryAlertEnabled: value })
+            }
+          />
+          <NotificationPreferenceRow
+            title="Care Bulletin"
+            subtitle="Receive non-urgent Eldora care summaries."
+            toggleValue={preferences?.bulletinEnabled ?? true}
+            onToggle={(value) => updatePreferences.mutate({ bulletinEnabled: value })}
           />
         </ScrollView>
       </View>

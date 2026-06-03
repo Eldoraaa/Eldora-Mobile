@@ -8,6 +8,14 @@ import {
   UpdateNotificationPreferencePayload,
 } from "@/types/notification.types";
 
+export function useNotificationQuery(notificationId?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.notifications.detail(notificationId),
+    queryFn: () => notificationApi.getNotification(notificationId!),
+    enabled: Boolean(notificationId),
+  });
+}
+
 export function useNotificationsQuery(params: ListNotificationsParams = {}) {
   return useQuery({
     queryKey: queryKeys.notifications.list(params.type),
@@ -48,6 +56,43 @@ export function useMarkNotificationReadMutation(type?: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.notifications.list(type),
       });
+    },
+  });
+}
+
+export function useRespondNotificationMutation(type?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      notificationId,
+      status,
+      note,
+    }: {
+      notificationId: string;
+      status: "acknowledged" | "calling" | "en_route" | "resolved";
+      note?: string;
+    }) => notificationApi.respondNotification(notificationId, { status, note }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications.list(type),
+      });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.home.safetySummary });
+    },
+  });
+}
+
+export function useResolveNotificationMutation(type?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (notificationId: string) =>
+      notificationApi.resolveNotification(notificationId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications.list(type),
+      });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.home.safetySummary });
     },
   });
 }

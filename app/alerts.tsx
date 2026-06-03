@@ -175,6 +175,7 @@ export default function MessageCenterScreen() {
           <Pressable
             className="h-11 w-11 items-center justify-center"
             accessibilityRole="button"
+            accessibilityLabel="Go back"
             onPress={goBack}
           >
             <ChevronLeft size={28} color={COLORS.text} strokeWidth={2.35} />
@@ -195,6 +196,7 @@ export default function MessageCenterScreen() {
           <Pressable
             className="h-11 w-11 items-center justify-center"
             accessibilityRole="button"
+            accessibilityLabel="Notification settings"
             onPress={() => router.push("/notification-settings" as never)}
           >
             <Settings size={27} color={COLORS.text} strokeWidth={2.35} />

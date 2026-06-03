@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  LayoutAnimation,
+  Platform,
   Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
+  UIManager,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,6 +27,10 @@ import {
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { RoomCategory } from "@/types/device.types";
 import { reorderRooms } from "@/utils/room.utils";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function RoomManagementScreen() {
   const params = useLocalSearchParams<{ homeId?: string }>();
@@ -90,6 +97,11 @@ export default function RoomManagementScreen() {
         text2: "The room may already exist.",
       });
     }
+  };
+
+  const moveRoom = (fromIndex: number, toIndex: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setRooms((current) => reorderRooms(current, fromIndex, toIndex));
   };
 
   const deleteRoom = async (room: RoomCategory) => {
@@ -193,11 +205,7 @@ export default function RoomManagementScreen() {
                 editing={editing}
                 count={deviceCountByRoom.get(room.id) ?? room.deviceCount ?? 0}
                 onDelete={() => deleteRoom(room)}
-                onDrop={(fromIndex, toIndex) =>
-                  setRooms((current) =>
-                    reorderRooms(current, fromIndex, toIndex)
-                  )
-                }
+                onDragMove={moveRoom}
               />
             ))}
 
@@ -205,6 +213,8 @@ export default function RoomManagementScreen() {
               <TouchableOpacity
                 className="ml-8 mt-10 py-4"
                 activeOpacity={0.78}
+                accessibilityRole="button"
+                accessibilityLabel="Add room"
                 onPress={() => setShowAddRoom(true)}
               >
                 <Text

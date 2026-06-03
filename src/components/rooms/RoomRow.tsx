@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { PanResponder, Pressable, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useRef } from "react";
+import { Animated, PanResponder, Text, TouchableOpacity, View } from "react-native";
 import { Grip, Minus } from "lucide-react-native";
 import { COLORS } from "@/constants/theme";
 import { RoomCategory } from "@/types/device.types";
@@ -12,7 +12,7 @@ type RoomRowProps = {
   editing: boolean;
   index: number;
   onDelete: () => void;
-  onDrop: (fromIndex: number, toIndex: number) => void;
+  onDragMove: (fromIndex: number, toIndex: number) => void;
 };
 
 export function RoomRow({
@@ -21,27 +21,56 @@ export function RoomRow({
   editing,
   index,
   onDelete,
-  onDrop,
+  onDragMove,
 }: RoomRowProps) {
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_event, gesture) =>
-        editing && Math.abs(gesture.dy) > 10,
-      onPanResponderRelease: (_event, gesture) => {
-        if (!editing) return;
-        const offset = Math.round(gesture.dy / ROOM_ROW_HEIGHT);
-        if (offset !== 0) onDrop(index, index + offset);
-      },
-    })
-  ).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gesture) =>
+          editing && Math.abs(gesture.dy) > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+        onPanResponderMove: (_event, gesture) => {
+          translateY.setValue(gesture.dy);
+          const offset = Math.round(gesture.dy / ROOM_ROW_HEIGHT);
+          if (offset !== 0) {
+            onDragMove(index, index + offset);
+            translateY.setValue(0);
+          }
+        },
+        onPanResponderRelease: () => {
+          if (!editing) return;
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 10,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 10,
+          }).start();
+        },
+      }),
+    [editing, index, onDragMove, translateY]
+  );
 
   if (editing) {
     return (
-      <View className="flex-row items-center px-8 py-5" {...panResponder.panHandlers}>
+      <Animated.View
+        className="flex-row items-center px-8 py-5"
+        style={{ transform: [{ translateY }] }}
+      >
         <TouchableOpacity
           className="mr-5 h-8 w-8 items-center justify-center rounded-full"
-          style={{ backgroundColor: COLORS.coral }}
+          style={{ backgroundColor: room.isDefault ? COLORS.disabled : COLORS.coral }}
           activeOpacity={0.78}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${room.name}`}
+          accessibilityState={{ disabled: room.isDefault }}
           onPress={onDelete}
           disabled={room.isDefault}
         >
@@ -60,8 +89,14 @@ export function RoomRow({
         >
           {count} Device(s)
         </Text>
-        <Grip size={30} color={COLORS.disabled} />
-      </View>
+        <View
+          accessibilityRole="adjustable"
+          accessibilityLabel={`Drag ${room.name}`}
+          {...panResponder.panHandlers}
+        >
+          <Grip size={30} color={COLORS.disabled} />
+        </View>
+      </Animated.View>
     );
   }
 

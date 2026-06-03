@@ -1,7 +1,9 @@
 import React from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -27,9 +29,10 @@ export function AddRoomModal({
   onSubmit,
 }: AddRoomModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 justify-center bg-black/25 px-8">
-        <View className="overflow-hidden rounded-[20px] bg-white">
+    <Modal visible={visible} transparent animationType="fade" accessibilityViewIsModal onRequestClose={onClose}>
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <View className="flex-1 justify-center bg-black/25 px-8">
+          <View className="overflow-hidden rounded-[20px] bg-white" accessibilityRole="summary" accessibilityLabel="Add room form">
           <View className="px-7 pb-8 pt-8">
             <Text
               className="text-center text-[20px] font-extrabold"
@@ -47,6 +50,7 @@ export function AddRoomModal({
               style={{ color: COLORS.text }}
               returnKeyType="done"
               onSubmitEditing={onSubmit}
+              accessibilityLabel="Room name"
             />
           </View>
           <View className="h-px" style={{ backgroundColor: COLORS.line }} />
@@ -54,6 +58,8 @@ export function AddRoomModal({
             <TouchableOpacity
               className="flex-1 items-center justify-center"
               activeOpacity={0.78}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel add room"
               onPress={onClose}
             >
               <Text
@@ -69,6 +75,9 @@ export function AddRoomModal({
               activeOpacity={0.78}
               onPress={onSubmit}
               disabled={isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Add room"
+              accessibilityState={{ disabled: Boolean(isPending), busy: Boolean(isPending) }}
             >
               {isPending ? (
                 <ActivityIndicator color={COLORS.coral} />
@@ -82,8 +91,9 @@ export function AddRoomModal({
               )}
             </TouchableOpacity>
           </View>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

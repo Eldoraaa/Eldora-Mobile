@@ -6,6 +6,9 @@ const THIRTY_MINUTES = 30 * 60 * 1000;
 export const queryKeys = {
   home: {
     summary: ["home", "summary"] as const,
+    safetySummary: ["home", "safety-summary"] as const,
+    wellnessSummary: ["home", "wellness-summary"] as const,
+    emergencyContacts: ["home", "emergency-contacts"] as const,
     homes: ["home", "homes"] as const,
     settings: (homeId: string | null | undefined) =>
       ["home", "settings", homeId ?? "default"] as const,
@@ -16,6 +19,7 @@ export const queryKeys = {
       ["devices", "room-categories", homeId ?? "default"] as const,
   },
   notifications: {
+    detail: (id?: string | null) => ["notifications", "detail", id ?? "default"] as const,
     list: (type?: string) => ["notifications", "list", type ?? "all"] as const,
     preferences: ["notifications", "preferences"] as const,
   },

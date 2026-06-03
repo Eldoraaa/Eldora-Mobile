@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { homeApi } from "@/api/homeApi";
 import { queryKeys } from "@/lib/queryClient";
 import {
+  CreateEmergencyContactPayload,
   CreateHomeInvitationPayload,
   CreateHomePayload,
   HomeMemberRoleInput,
@@ -13,6 +14,52 @@ export function useHomesQuery() {
   return useQuery({
     queryKey: queryKeys.home.homes,
     queryFn: homeApi.getHomes,
+  });
+}
+
+export function useSafetySummaryQuery(homeId?: string | null) {
+  return useQuery({
+    queryKey: [...queryKeys.home.safetySummary, homeId ?? "all"],
+    queryFn: () => homeApi.getSafetySummary(homeId),
+  });
+}
+
+export function useWellnessSummaryQuery(homeId?: string | null) {
+  return useQuery({
+    queryKey: [...queryKeys.home.wellnessSummary, homeId ?? "all"],
+    queryFn: () => homeApi.getWellnessSummary(homeId),
+  });
+}
+
+export function useEmergencyContactsQuery(homeId?: string | null) {
+  return useQuery({
+    queryKey: [...queryKeys.home.emergencyContacts, homeId ?? "all"],
+    queryFn: () => homeApi.getEmergencyContacts(homeId),
+  });
+}
+
+export function useCreateEmergencyContactMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateEmergencyContactPayload) =>
+      homeApi.createEmergencyContact(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.home.emergencyContacts });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.home.safetySummary });
+    },
+  });
+}
+
+export function useDeleteEmergencyContactMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (contactId: string) => homeApi.deleteEmergencyContact(contactId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.home.emergencyContacts });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.home.safetySummary });
+    },
   });
 }
 

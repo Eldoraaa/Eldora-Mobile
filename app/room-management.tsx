@@ -126,6 +126,7 @@ export default function RoomManagementScreen() {
             <Pressable
               className="h-11 w-[74px] justify-center"
               accessibilityRole="button"
+              accessibilityLabel="Cancel room editing"
               onPress={() => {
                 setRooms(fetchedRooms);
                 setEditing(false);
@@ -139,6 +140,7 @@ export default function RoomManagementScreen() {
             <Pressable
               className="h-11 w-[74px] justify-center"
               accessibilityRole="button"
+              accessibilityLabel="Go back"
               onPress={goBack}
             >
               <ChevronLeft size={30} color={COLORS.text} strokeWidth={2.4} />
@@ -155,6 +157,8 @@ export default function RoomManagementScreen() {
           <Pressable
             className="h-11 w-[74px] items-end justify-center"
             accessibilityRole="button"
+            accessibilityLabel={editing ? "Save room changes" : "Edit rooms"}
+            accessibilityState={{ disabled: isBusy, busy: isBusy }}
             onPress={editing ? saveRooms : () => setEditing(true)}
             disabled={isBusy}
           >

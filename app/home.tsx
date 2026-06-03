@@ -17,6 +17,7 @@ import {
 import Toast from "react-native-toast-message";
 import { router } from "expo-router";
 import {
+  Bell,
   ChevronDown,
   ListChecks,
   MoreHorizontal,
@@ -47,7 +48,7 @@ import {
   useScanLocalWifiNetworksMutation,
   useSyncDevicesToHomeSummary,
 } from "@/hooks/useDeviceQueries";
-import { useHomesQuery } from "@/hooks/useHomeManagementQueries";
+import { useHomesQuery, useSafetySummaryQuery, useWellnessSummaryQuery } from "@/hooks/useHomeManagementQueries";
 import {
   DevicePairingRequest,
   EldoraDevice,
@@ -61,6 +62,10 @@ import { formatRelativeTime } from "@/utils/formatters";
 type WifiTarget =
   | { kind: "device"; device: EldoraDevice }
   | { kind: "local"; hub: LocalProvisioningInfo };
+
+function isAlreadyPairedHub(hub: LocalProvisioningInfo, devices: EldoraDevice[]) {
+  return devices.some((device) => device.deviceId === hub.deviceKey);
+}
 
 export default function HomeScreen() {
   const [discoveredHubs, setDiscoveredHubs] = useState<LocalProvisioningInfo[]>([]);
@@ -99,6 +104,8 @@ export default function HomeScreen() {
   const selectedHomeName = selectedHome?.name ?? "...";
   const hasSelectedHome = Boolean(selectedHome);
   const roomCategoriesQuery = useRoomCategoriesQuery(selectedHome?.id);
+  const safetySummaryQuery = useSafetySummaryQuery(selectedHome?.id);
+  const wellnessSummaryQuery = useWellnessSummaryQuery(selectedHome?.id);
 
   const activeLocalHub = localHub;
   const devices = devicesScreenQuery.data?.devices ?? [];
@@ -116,6 +123,25 @@ export default function HomeScreen() {
     () => devices.filter((device) => device.isOnline).length,
     [devices]
   );
+  const primaryCareDevice = useMemo(
+    () => devices.find((device) => `${device.name} ${device.deviceId}`.toLowerCase().includes("aegis")) ?? devices[0],
+    [devices]
+  );
+  const latestAlarm = safetySummaryQuery.data?.openAlert ?? null;
+  const emergencyContact = safetySummaryQuery.data?.emergencyContact ?? null;
+  const elderSafetyState = safetySummaryQuery.data
+    ? safetySummaryQuery.data.status === "needs_attention"
+      ? "Needs attention"
+      : safetySummaryQuery.data.status === "safe"
+        ? "Safe"
+        : safetySummaryQuery.data.status === "device_offline"
+          ? "Device offline"
+          : "Setup needed"
+    : primaryCareDevice?.isOnline
+      ? "Safe"
+      : primaryCareDevice
+        ? "Device offline"
+        : "Setup needed";
 
   useSyncDevicesToHomeSummary(devicesScreenQuery.data);
 
@@ -163,6 +189,8 @@ export default function HomeScreen() {
     try {
       await Promise.all([
         refetchDeviceData(),
+        safetySummaryQuery.refetch(),
+        wellnessSummaryQuery.refetch(),
         discoverLocalHubs(true),
         activeLocalHub ? scanWifiNetworks(activeLocalHub.ipAddress) : Promise.resolve(),
       ]);
@@ -271,22 +299,23 @@ export default function HomeScreen() {
 
     try {
       const hubs = await discoverLocalHubsMutation.mutateAsync();
-      setDiscoveredHubs(hubs);
+      const unpairedHubs = hubs.filter((hub) => !isAlreadyPairedHub(hub, devices));
+      setDiscoveredHubs(unpairedHubs);
       setDiscoveryError(null);
 
-      if (hubs.length === 0) {
-        setDiscoveryError("No response from the Eldora Core setup address.");
+      if (unpairedHubs.length === 0) {
+        setDiscoveryError(hubs.length > 0 ? "No new Eldora Core found." : "No response from the Eldora Core setup address.");
         if (!silent) {
           Toast.show({
             type: "error",
-            text1: "No Eldora Core found",
-            text2: "Make sure this phone is on the same WiFi as Eldora Core.",
+            text1: hubs.length > 0 ? "No new Eldora Core found" : "No Eldora Core found",
+            text2: hubs.length > 0 ? "Connected devices are hidden from search results." : "Make sure this phone is on the same WiFi as Eldora Core.",
           });
         }
         return;
       }
 
-      const firstHub = hubs[0];
+      const firstHub = unpairedHubs[0];
       setLocalHub(firstHub);
 
       if (!silent) {
@@ -526,6 +555,19 @@ export default function HomeScreen() {
   const wearableLastSeen = wearableDevice?.lastSeen
     ? formatRelativeTime(wearableDevice.lastSeen)
     : "Not paired yet";
+  const riskSummary = safetySummaryQuery.data?.risk;
+  const wellnessSummary = wellnessSummaryQuery.data;
+  const riskAccent = riskSummary?.level === "high" ? COLORS.coral : riskSummary?.level === "medium" ? COLORS.warning : COLORS.success;
+  const wellnessAccent = wellnessSummary?.distressLevel === "high" ? COLORS.coral : wellnessSummary?.distressLevel === "medium" ? COLORS.warning : COLORS.success;
+  const anomalyLabels: Record<string, string> = {
+    open_alert: "Open alert",
+    unresolved_critical: "Critical alert unresolved",
+    no_response_alert: "No caregiver response yet",
+    frequent_alerts: "Frequent recent alerts",
+    device_offline: "Device offline",
+    no_heartbeat: "No heartbeat",
+    low_battery: "Low battery",
+  };
   const displayDevices = devices.filter((device) => {
     if (selectedRoomSlug === "all") return true;
     const selectedRoom = managedRoomCategories.find(
@@ -579,8 +621,11 @@ export default function HomeScreen() {
         >
           <View className="bg-white px-5 pt-5">
             <View className="flex-row items-center justify-between">
-              <TouchableOpacity
+                <TouchableOpacity
                 className="flex-row items-center"
+                accessibilityRole="button"
+                accessibilityLabel="Select home"
+                accessibilityHint="Open the home selector"
                 onPress={() => {
                   setShowDeviceMenu(false);
                   setShowMoreMenu(false);
@@ -595,6 +640,9 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <View className="flex-row items-center">
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Open add menu"
+                  accessibilityHint="Add a device or create a scene"
                   onPress={() => {
                     setShowMoreMenu(false);
                     setShowDeviceMenu((value) => !value);
@@ -665,6 +713,148 @@ export default function HomeScreen() {
               </View>
             </View>
 
+            <TouchableOpacity
+              className="mt-5 rounded-[22px] border px-5 py-5"
+              style={{
+                borderColor: latestAlarm ? COLORS.coral : COLORS.line,
+                backgroundColor: latestAlarm ? COLORS.coralSoft : "#FFFFFF",
+              }}
+              activeOpacity={0.78}
+              accessibilityRole="button"
+              accessibilityLabel="Open latest safety status"
+              onPress={() => {
+                if (latestAlarm) {
+                  router.push(`/alert-detail?id=${latestAlarm.id}&type=${latestAlarm.type}` as never);
+                  return;
+                }
+                if (primaryCareDevice) {
+                  router.push(`/device-detail?id=${primaryCareDevice.id}` as never);
+                }
+              }}
+            >
+              <View className="flex-row items-center">
+                <View
+                  className="mr-4 h-12 w-12 items-center justify-center rounded-[16px]"
+                  style={{ backgroundColor: latestAlarm ? "#FFFFFF" : COLORS.surfaceMuted }}
+                >
+                  {latestAlarm ? (
+                    <Bell size={24} color={COLORS.coral} strokeWidth={2.2} />
+                  ) : (
+                    <ShieldCheck
+                      size={24}
+                      color={primaryCareDevice?.isOnline ? COLORS.success : COLORS.warning}
+                      strokeWidth={2.2}
+                    />
+                  )}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                    Elder safety
+                  </Text>
+                  <Text className="mt-1 text-[21px] font-extrabold leading-7" style={{ color: COLORS.text }}>
+                    {elderSafetyState}
+                  </Text>
+                  <Text className="mt-1 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }} numberOfLines={2}>
+                    {latestAlarm?.body ??
+                      (safetySummaryQuery.data
+                        ? `${safetySummaryQuery.data.risk.level.toUpperCase()} risk · ${safetySummaryQuery.data.risk.recommendation}${emergencyContact ? ` · Call ${emergencyContact.name} if needed` : ""}`
+                        : primaryCareDevice
+                          ? `${primaryCareDevice.elderName} · ${deviceStatusText(primaryCareDevice.isOnline)}`
+                          : "Pair AegisWear or Eldora Core to start monitoring.")}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {riskSummary ? (
+              <View className="mt-5 rounded-[22px] border px-5 py-5" style={{ borderColor: COLORS.line, backgroundColor: "#FFFFFF" }}>
+                <View className="flex-row items-start justify-between">
+                  <View className="flex-1 pr-4">
+                    <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                      Risk & anomaly
+                    </Text>
+                    <Text className="mt-1 text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
+                      {riskSummary.level.toUpperCase()} risk
+                    </Text>
+                    <Text className="mt-2 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                      {riskSummary.recommendation}
+                    </Text>
+                  </View>
+                  <View className="h-[62px] w-[62px] items-center justify-center rounded-[20px]" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                    <Text className="text-[20px] font-extrabold" style={{ color: riskAccent }}>
+                      {riskSummary.score}
+                    </Text>
+                    <Text className="text-[10px] font-bold uppercase" style={{ color: COLORS.muted }}>
+                      score
+                    </Text>
+                  </View>
+                </View>
+                <View className="mt-4 flex-row flex-wrap gap-2">
+                  {riskSummary.anomalyFlags.length > 0 ? (
+                    riskSummary.anomalyFlags.map((flag) => (
+                      <View key={flag} className="rounded-full px-3 py-2" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                        <Text className="text-[12px] font-extrabold" style={{ color: COLORS.text }}>
+                          {anomalyLabels[flag] ?? flag.replace(/_/g, " ")}
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <View className="rounded-full px-3 py-2" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                      <Text className="text-[12px] font-extrabold" style={{ color: COLORS.success }}>
+                        No anomaly detected
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ) : null}
+
+            {wellnessSummary ? (
+              <View className="mt-5 rounded-[22px] border px-5 py-5" style={{ borderColor: COLORS.line, backgroundColor: "#FFFFFF" }}>
+                <View className="flex-row items-start justify-between">
+                  <View className="flex-1 pr-4">
+                    <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                      Wellness summary
+                    </Text>
+                    <Text className="mt-1 text-[23px] font-extrabold leading-8" style={{ color: COLORS.text }}>
+                      {wellnessSummary.moodTrend.replace(/_/g, " ")}
+                    </Text>
+                    <Text className="mt-2 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                      {wellnessSummary.interactionSummary}
+                    </Text>
+                  </View>
+                  <View className="h-[62px] w-[62px] items-center justify-center rounded-[20px]" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                    <Text className="text-[20px] font-extrabold" style={{ color: wellnessAccent }}>
+                      {wellnessSummary.distressScore}
+                    </Text>
+                    <Text className="text-[10px] font-bold uppercase" style={{ color: COLORS.muted }}>
+                      distress
+                    </Text>
+                  </View>
+                </View>
+                <Text className="mt-4 text-[13px] font-semibold leading-5" style={{ color: COLORS.text }}>
+                  {wellnessSummary.recommendation}
+                </Text>
+                <View className="mt-4 flex-row flex-wrap gap-2">
+                  {wellnessSummary.careSignals.length > 0 ? (
+                    wellnessSummary.careSignals.map((signal) => (
+                      <View key={signal} className="rounded-full px-3 py-2" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                        <Text className="text-[12px] font-extrabold" style={{ color: COLORS.text }}>
+                          {signal}
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <View className="rounded-full px-3 py-2" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                      <Text className="text-[12px] font-extrabold" style={{ color: COLORS.success }}>
+                        Stable wellness signals
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ) : null}
+
             <View className="mt-8 flex-row items-center">
               <ScrollView
                 horizontal
@@ -679,6 +869,9 @@ export default function HomeScreen() {
                       onPress={() => setSelectedRoomSlug(room.slug)}
                       className="mr-8"
                       activeOpacity={0.76}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${room.name} room filter`}
+                      accessibilityState={{ selected: active }}
                     >
                       <Text
                         className={`text-[16px] leading-6 ${
@@ -696,6 +889,8 @@ export default function HomeScreen() {
               </ScrollView>
               {hasSelectedHome ? (
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Open home options"
                   onPress={() => {
                     setShowDeviceMenu(false);
                     setShowMoreMenu((value) => !value);
@@ -713,6 +908,7 @@ export default function HomeScreen() {
                 transparent
                 animationType="fade"
                 visible={showMoreMenu}
+                accessibilityViewIsModal
                 onRequestClose={() => setShowMoreMenu(false)}
               >
                 <Pressable
@@ -722,6 +918,8 @@ export default function HomeScreen() {
                   <View className="mx-auto w-full max-w-[430px] flex-1">
                     <Pressable
                       className="absolute right-5 top-[332px] w-[260px] rounded-[18px] bg-white py-2"
+                      accessibilityRole="menu"
+                      accessibilityLabel="Home options"
                       onPress={(event) => event.stopPropagation()}
                       style={{
                         shadowColor: "#17202A",
@@ -753,6 +951,8 @@ export default function HomeScreen() {
                           <TouchableOpacity
                             className="flex-row items-center gap-5 px-6 py-4"
                             activeOpacity={0.78}
+                            accessibilityRole="menuitem"
+                            accessibilityLabel={label}
                             onPress={onPress}
                           >
                             <Icon size={24} color="#17202A" />
@@ -787,6 +987,9 @@ export default function HomeScreen() {
                       disabled={isScanningWifi}
                       className="rounded-xl bg-[#F6F1EC] px-3 py-2"
                       activeOpacity={0.82}
+                      accessibilityRole="button"
+                      accessibilityLabel="Refresh WiFi networks"
+                      accessibilityState={{ disabled: isScanningWifi, busy: isScanningWifi }}
                     >
                       <Text className="text-[12px] font-bold text-[#D95545]">
                         {isScanningWifi ? "Checking" : "Refresh"}

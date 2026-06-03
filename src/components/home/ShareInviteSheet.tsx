@@ -26,10 +26,10 @@ export function ShareInviteSheet({
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" accessibilityViewIsModal onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/35">
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="mx-4 overflow-hidden rounded-[22px] bg-white">
+        <View className="mx-4 overflow-hidden rounded-[22px] bg-white" accessibilityRole="summary" accessibilityLabel="Share invitation sheet">
           <View className="px-8 pb-8 pt-8">
             <Text
               className="text-center text-[20px] font-extrabold"
@@ -45,6 +45,9 @@ export function ShareInviteSheet({
                   activeOpacity={0.78}
                   onPress={onShare}
                   disabled={isSharing}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share invitation via ${label.replace(/\n/g, " ")}`}
+                  accessibilityState={{ disabled: Boolean(isSharing), busy: Boolean(isSharing) }}
                 >
                   <View className="h-[66px] w-[66px] items-center justify-center rounded-[18px] bg-[#F3F3F3]">
                     <Icon size={28} color={COLORS.text} />
@@ -71,6 +74,7 @@ export function ShareInviteSheet({
           <Pressable
             className="h-[64px] items-center justify-center"
             accessibilityRole="button"
+            accessibilityLabel="Cancel sharing"
             onPress={onClose}
           >
             <Text

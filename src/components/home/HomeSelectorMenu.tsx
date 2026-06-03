@@ -22,12 +22,15 @@ export function HomeSelectorMenu({
       transparent
       animationType="fade"
       visible={visible}
+      accessibilityViewIsModal
       onRequestClose={onClose}
     >
       <Pressable className="flex-1 bg-black/45" onPress={onClose}>
         <View className="mx-auto w-full max-w-[430px]">
           <Pressable
             className="rounded-b-[18px] bg-white px-6 pb-4 pt-12"
+            accessibilityRole="menu"
+            accessibilityLabel="Home selector"
             onPress={(event) => event.stopPropagation()}
           >
             {hasSelectedHome ? (
@@ -35,6 +38,9 @@ export function HomeSelectorMenu({
                 <TouchableOpacity
                   className="h-14 flex-row items-center"
                   activeOpacity={0.78}
+                  accessibilityRole="menuitem"
+                  accessibilityLabel={`${selectedHomeName ?? "Selected home"}, selected`}
+                  accessibilityState={{ selected: true }}
                   onPress={onClose}
                 >
                   <Check size={20} color={COLORS.coral} />
@@ -51,6 +57,8 @@ export function HomeSelectorMenu({
             <TouchableOpacity
               className="h-14 flex-row items-center"
               activeOpacity={0.78}
+              accessibilityRole="menuitem"
+              accessibilityLabel="Home management"
               onPress={() => {
                 onClose();
                 router.push("/home-management" as never);

@@ -188,6 +188,7 @@ export default function HomeMemberScreen() {
           visible={showRoleModal}
           transparent
           animationType="fade"
+          accessibilityViewIsModal
           onRequestClose={() => setShowRoleModal(false)}
         >
           <View className="flex-1 justify-end bg-black/35">
@@ -195,7 +196,7 @@ export default function HomeMemberScreen() {
               className="flex-1"
               onPress={() => setShowRoleModal(false)}
             />
-            <View className="rounded-t-[24px] bg-white px-6 pb-8 pt-7">
+            <View className="rounded-t-[28px] bg-white px-6 pb-8 pt-7" accessibilityRole="summary" accessibilityLabel="Family role selector">
               <Text
                 className="text-center text-[20px] font-extrabold"
                 style={{ color: COLORS.text }}
@@ -208,6 +209,9 @@ export default function HomeMemberScreen() {
                     key={item.value}
                     className="h-14 flex-row items-center"
                     activeOpacity={0.78}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.label} role`}
+                    accessibilityState={{ selected: member?.role === item.label }}
                     onPress={() => updateRole(item.value)}
                   >
                     <Text

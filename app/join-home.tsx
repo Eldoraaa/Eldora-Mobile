@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -56,6 +57,7 @@ export default function JoinHomeScreen() {
           <Pressable
             className="h-11 w-11 items-center justify-center"
             accessibilityRole="button"
+            accessibilityLabel="Go back"
             onPress={goBack}
           >
             <ChevronLeft size={30} color={COLORS.text} strokeWidth={2.4} />
@@ -68,7 +70,12 @@ export default function JoinHomeScreen() {
           </Text>
         </View>
 
-        <View className="flex-1 px-8 pt-14">
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="flex-grow px-8 pb-10 pt-14"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View className="items-center">
             <View className="h-[76px] w-[76px] items-center justify-center rounded-[24px] bg-[#FFE7E2]">
               <HousePlus size={43} color={COLORS.coral} strokeWidth={2.4} />
@@ -96,12 +103,16 @@ export default function JoinHomeScreen() {
               placeholder="Invitation code"
               placeholderTextColor={COLORS.disabled}
               returnKeyType="go"
+              accessibilityLabel="Invitation code"
+              accessibilityHint="Enter the shared home invitation code"
               onChangeText={setInviteCode}
               onSubmitEditing={joinHome}
             />
             <Pressable
               className="h-10 w-10 items-center justify-center"
               accessibilityRole="button"
+              accessibilityLabel="Join home"
+              accessibilityState={{ disabled: !canSubmit, busy: joinHomeMutation.isPending }}
               disabled={!canSubmit}
               onPress={joinHome}
             >
@@ -116,7 +127,7 @@ export default function JoinHomeScreen() {
               )}
             </Pressable>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

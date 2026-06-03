@@ -1,10 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   Share,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import Toast from "react-native-toast-message";
@@ -18,7 +23,10 @@ import { ShareInviteSheet } from "@/components/home/ShareInviteSheet";
 import { COLORS } from "@/constants/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import {
+  useCreateEmergencyContactMutation,
   useCreateHomeInvitationMutation,
+  useDeleteEmergencyContactMutation,
+  useEmergencyContactsQuery,
   useHomeSettingsQuery,
   useHomesQuery,
   useUpdateHomeMutation,
@@ -31,11 +39,17 @@ export default function HomeSettingsScreen() {
   const fallbackHomeId = homesQuery.data?.[0]?.id;
   const homeId = params.homeId ?? fallbackHomeId ?? null;
   const settingsQuery = useHomeSettingsQuery(homeId);
+  const emergencyContactsQuery = useEmergencyContactsQuery(homeId);
   const updateHomeMutation = useUpdateHomeMutation(homeId);
   const createInvitationMutation = useCreateHomeInvitationMutation(homeId);
+  const createEmergencyContactMutation = useCreateEmergencyContactMutation();
+  const deleteEmergencyContactMutation = useDeleteEmergencyContactMutation();
   const home = settingsQuery.data;
   const [draftHomeName, setDraftHomeName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [showNameModal, setShowNameModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
@@ -62,6 +76,38 @@ export default function HomeSettingsScreen() {
       Toast.show({
         type: "error",
         text1: "Could not create invite",
+        text2: error.response?.data?.message ?? "Please try again.",
+      });
+    }
+  };
+
+  const saveEmergencyContact = async () => {
+    const name = contactName.trim();
+    const phone = contactPhone.trim();
+    if (!name || !phone) {
+      Toast.show({
+        type: "error",
+        text1: "Contact is incomplete",
+        text2: "Add both name and phone number.",
+      });
+      return;
+    }
+
+    try {
+      await createEmergencyContactMutation.mutateAsync({
+        name,
+        phone,
+        isPrimary: (emergencyContactsQuery.data ?? []).length === 0,
+        homeId,
+      });
+      setContactName("");
+      setContactPhone("");
+      setShowContactModal(false);
+      Toast.show({ type: "success", text1: "Emergency contact saved" });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not save contact",
         text2: error.response?.data?.message ?? "Please try again.",
       });
     }
@@ -144,6 +190,45 @@ export default function HomeSettingsScreen() {
               className="mt-7 px-8 text-[14px] font-semibold leading-5"
               style={{ color: COLORS.muted }}
             >
+              Emergency Contact
+            </Text>
+            <View className="mt-5">
+              {(emergencyContactsQuery.data ?? []).slice(0, 2).map((contact) => (
+                <HomeSettingsRow
+                  key={contact.id}
+                  label={contact.name}
+                  value={`${contact.phone} · Remove`}
+                  onPress={() =>
+                    Alert.alert("Remove contact?", `Remove ${contact.name} from emergency contacts?`, [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Remove",
+                        style: "destructive",
+                        onPress: () =>
+                          deleteEmergencyContactMutation.mutate(contact.id, {
+                            onSuccess: () => Toast.show({ type: "success", text1: "Contact removed" }),
+                            onError: () => Toast.show({ type: "error", text1: "Could not remove contact" }),
+                          }),
+                      },
+                    ])
+                  }
+                />
+              ))}
+              <Pressable
+                className="px-8 py-5"
+                accessibilityRole="button"
+                onPress={() => setShowContactModal(true)}
+              >
+                <Text className="text-[16px] font-extrabold leading-6" style={{ color: COLORS.coral }}>
+                  Add Emergency Contact
+                </Text>
+              </Pressable>
+            </View>
+
+            <Text
+              className="mt-7 px-8 text-[14px] font-semibold leading-5"
+              style={{ color: COLORS.muted }}
+            >
               Home Member
             </Text>
             <View className="mt-5">
@@ -179,6 +264,62 @@ export default function HomeSettingsScreen() {
           onSave={saveHomeName}
           onClose={() => setShowNameModal(false)}
         />
+
+        <Modal transparent visible={showContactModal} animationType="fade" accessibilityViewIsModal onRequestClose={() => setShowContactModal(false)}>
+          <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
+            <Pressable className="flex-1 justify-end bg-black/40" onPress={() => setShowContactModal(false)}>
+              <Pressable
+                className="rounded-t-[28px] bg-white px-7 pb-10 pt-7"
+                accessibilityRole="summary"
+                accessibilityLabel="Emergency contact form"
+                onPress={(event) => event.stopPropagation()}
+              >
+              <Text className="text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+                Emergency Contact
+              </Text>
+              <Text className="mt-2 text-[14px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                This contact appears as a one-tap call action during alerts.
+              </Text>
+              <TextInput
+                value={contactName}
+                onChangeText={setContactName}
+                placeholder="Name"
+                placeholderTextColor={COLORS.disabled}
+                className="mt-6 h-12 rounded-[14px] border px-4 text-[15px] font-semibold"
+                style={{ borderColor: COLORS.line, color: COLORS.text }}
+                accessibilityLabel="Emergency contact name"
+                autoComplete="name"
+                returnKeyType="next"
+              />
+              <TextInput
+                value={contactPhone}
+                onChangeText={setContactPhone}
+                placeholder="Phone number"
+                placeholderTextColor={COLORS.disabled}
+                keyboardType="phone-pad"
+                className="mt-3 h-12 rounded-[14px] border px-4 text-[15px] font-semibold"
+                style={{ borderColor: COLORS.line, color: COLORS.text }}
+                accessibilityLabel="Emergency contact phone"
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+                returnKeyType="done"
+                onSubmitEditing={saveEmergencyContact}
+              />
+              <Pressable
+                className="mt-5 h-12 items-center justify-center rounded-[16px]"
+                style={{ backgroundColor: COLORS.coral }}
+                accessibilityRole="button"
+                disabled={createEmergencyContactMutation.isPending}
+                onPress={saveEmergencyContact}
+              >
+                <Text className="font-extrabold text-white">
+                  {createEmergencyContactMutation.isPending ? "Saving..." : "Save Contact"}
+                </Text>
+              </Pressable>
+              </Pressable>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Modal>
 
         <ShareInviteSheet
           visible={showShareModal}

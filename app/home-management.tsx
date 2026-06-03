@@ -48,6 +48,7 @@ export default function HomeManagementScreen() {
           <Pressable
             className="h-11 w-11 items-center justify-center"
             accessibilityRole="button"
+            accessibilityLabel="Go back"
             onPress={goBack}
           >
             <ChevronLeft size={30} color={COLORS.text} strokeWidth={2.4} />
@@ -79,6 +80,7 @@ export default function HomeManagementScreen() {
             <Pressable
               className="py-4"
               accessibilityRole="button"
+              accessibilityLabel="Create a home"
               onPress={() => setShowCreateModal(true)}
             >
               <Text
@@ -91,6 +93,7 @@ export default function HomeManagementScreen() {
             <Pressable
               className="mt-4 py-4"
               accessibilityRole="button"
+              accessibilityLabel="Join a home"
               onPress={() => router.push("/join-home")}
             >
               <Text

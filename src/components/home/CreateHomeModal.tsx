@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Pressable, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { COLORS } from "@/constants/theme";
 
 type CreateHomeModalProps = {
@@ -20,12 +20,15 @@ export function CreateHomeModal({
   onSubmit,
 }: CreateHomeModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-center bg-black/35 px-8" onPress={onClose}>
-        <Pressable
-          className="overflow-hidden rounded-[18px] bg-white"
-          onPress={(event) => event.stopPropagation()}
-        >
+    <Modal visible={visible} transparent animationType="fade" accessibilityViewIsModal onRequestClose={onClose}>
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <Pressable className="flex-1 justify-center bg-black/35 px-8" onPress={onClose}>
+          <Pressable
+            className="overflow-hidden rounded-[20px] bg-white"
+            accessibilityRole="summary"
+            accessibilityLabel="Create home form"
+            onPress={(event) => event.stopPropagation()}
+          >
           <View className="px-7 pb-8 pt-7">
             <Text
               className="text-center text-[20px] font-extrabold"
@@ -41,13 +44,14 @@ export function CreateHomeModal({
               placeholder="Enter home name"
               placeholderTextColor={COLORS.disabled}
               onChangeText={onChange}
+              accessibilityLabel="Home name"
               returnKeyType="done"
               onSubmitEditing={onSubmit}
             />
           </View>
           <View className="h-px" style={{ backgroundColor: COLORS.line }} />
           <View className="h-[58px] flex-row">
-            <Pressable className="flex-1 items-center justify-center" onPress={onClose}>
+            <Pressable className="flex-1 items-center justify-center" accessibilityRole="button" accessibilityLabel="Cancel create home" onPress={onClose}>
               <Text className="text-[16px] font-semibold" style={{ color: COLORS.muted }}>
                 Cancel
               </Text>
@@ -57,6 +61,9 @@ export function CreateHomeModal({
               className="flex-1 items-center justify-center"
               onPress={onSubmit}
               disabled={isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Create home"
+              accessibilityState={{ disabled: Boolean(isPending), busy: Boolean(isPending) }}
             >
               <Text
                 className="text-[16px] font-extrabold"
@@ -66,8 +73,9 @@ export function CreateHomeModal({
               </Text>
             </Pressable>
           </View>
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

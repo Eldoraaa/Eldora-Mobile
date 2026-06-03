@@ -14,6 +14,8 @@ export function HomeSettingsRow({ label, value, onPress }: HomeSettingsRowProps)
     <Pressable
       className="flex-row items-center px-8 py-5"
       accessibilityRole="button"
+      accessibilityLabel={value ? `${label}, ${value}` : label}
+      accessibilityHint="Double tap to open"
       onPress={onPress}
     >
       <Text

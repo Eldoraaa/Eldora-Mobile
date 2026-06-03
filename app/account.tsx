@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
@@ -7,15 +7,20 @@ import { ScreenHeader } from "@/components/navigation/ScreenHeader";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { queryClient } from "@/lib/queryClient";
-import { formatBytes, getQueryCacheSize } from "@/utils/cache.utils";
+import { clearAppCache, formatBytes, getAppCacheSize } from "@/utils/cache.utils";
 
 export default function AccountSettingsScreen() {
   const goBack = useBackNavigation("/settings");
-  const cacheLabel = formatBytes(getQueryCacheSize(queryClient));
+  const [cacheSize, setCacheSize] = useState(0);
+  const cacheLabel = formatBytes(cacheSize);
 
-  const clearCache = () => {
-    const clearedSize = getQueryCacheSize(queryClient);
-    queryClient.clear();
+  useEffect(() => {
+    void getAppCacheSize(queryClient).then(setCacheSize);
+  }, []);
+
+  const clearCache = async () => {
+    const clearedSize = await clearAppCache(queryClient);
+    setCacheSize(0);
     Toast.show({
       type: "success",
       text1: "Cache cleared successfully",

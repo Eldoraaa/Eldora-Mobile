@@ -29,14 +29,14 @@ export function HomeSettingsMemberRow({
       <HomeMemberAvatar avatarUrl={member.avatarUrl} name={member.name} />
       <View className="ml-5 flex-1">
         <Text
-          className="text-[18px] font-normal leading-6"
+          className="text-[15px] font-semibold leading-5"
           style={{ color: COLORS.text }}
           numberOfLines={1}
         >
           {member.name}
         </Text>
         <Text
-          className="mt-1 text-[15px] font-normal leading-5"
+          className="mt-1 text-[12px] font-semibold leading-4"
           style={{ color: COLORS.muted }}
           numberOfLines={1}
         >
@@ -44,7 +44,7 @@ export function HomeSettingsMemberRow({
         </Text>
       </View>
       <Text
-        className="max-w-[124px] text-right text-[16px] font-normal leading-5"
+        className="max-w-[104px] text-right text-[12px] font-semibold leading-4"
         style={{ color: COLORS.muted }}
         numberOfLines={2}
       >

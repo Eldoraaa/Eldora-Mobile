@@ -29,8 +29,10 @@ import {
   useEmergencyContactsQuery,
   useHomeSettingsQuery,
   useHomesQuery,
+  useRemoveHomeMemberMutation,
   useUpdateHomeMutation,
 } from "@/hooks/useHomeManagementQueries";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function HomeSettingsScreen() {
   const goBack = useBackNavigation("/home-management");
@@ -42,9 +44,12 @@ export default function HomeSettingsScreen() {
   const emergencyContactsQuery = useEmergencyContactsQuery(homeId);
   const updateHomeMutation = useUpdateHomeMutation(homeId);
   const createInvitationMutation = useCreateHomeInvitationMutation(homeId);
+  const removeHomeMemberMutation = useRemoveHomeMemberMutation(homeId);
   const createEmergencyContactMutation = useCreateEmergencyContactMutation();
   const deleteEmergencyContactMutation = useDeleteEmergencyContactMutation();
   const home = settingsQuery.data;
+  const currentUser = useAuthStore((state) => state.user);
+  const currentMember = home?.members.find((member) => member.userId === currentUser?.id);
   const [draftHomeName, setDraftHomeName] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -127,6 +132,35 @@ export default function HomeSettingsScreen() {
         text2: error.response?.data?.message ?? "Please try again.",
       });
     }
+  };
+
+  const leaveHome = () => {
+    if (!currentMember || !home) return;
+
+    Alert.alert(
+      "Leave home?",
+      `You will lose access to ${home.name}. You can only rejoin with a new invite.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Leave",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeHomeMemberMutation.mutateAsync(currentMember.id);
+              Toast.show({ type: "success", text1: "You left the home" });
+              router.replace("/home-management" as never);
+            } catch (error: any) {
+              Toast.show({
+                type: "error",
+                text1: "Could not leave home",
+                text2: error.response?.data?.message ?? "Please try again.",
+              });
+            }
+          },
+        },
+      ]
+    );
   };
 
   const isLoading = settingsQuery.isLoading || homesQuery.isLoading;
@@ -251,6 +285,17 @@ export default function HomeSettingsScreen() {
                 style={{ color: COLORS.coral }}
               >
                 Add Member
+              </Text>
+            </Pressable>
+
+            <Pressable
+              className="items-center px-8 py-5"
+              accessibilityRole="button"
+              accessibilityLabel="Leave home"
+              onPress={leaveHome}
+            >
+              <Text className="text-center text-[15px] font-extrabold leading-6 text-[#D61F1F]">
+                Leave Home
               </Text>
             </Pressable>
           </ScrollView>

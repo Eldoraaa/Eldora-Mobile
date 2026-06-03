@@ -22,6 +22,7 @@ import {
   useRemoveHomeMemberMutation,
   useUpdateHomeMemberRoleMutation,
 } from "@/hooks/useHomeManagementQueries";
+import { useAuthStore } from "@/stores/authStore";
 import { HomeMemberRole, HomeMemberRoleInput } from "@/types/home.types";
 
 const ROLES: Array<{ label: HomeMemberRole; value: HomeMemberRoleInput }> = [
@@ -47,12 +48,12 @@ function MemberDetailRow({
 
   return (
     <Row
-      className="min-h-[78px] flex-row items-center px-8 py-4"
+        className="min-h-[72px] flex-row items-center px-8 py-4"
       accessibilityRole={onPress ? "button" : undefined}
       onPress={onPress}
     >
       <Text
-        className="w-[132px] text-[16px] font-semibold leading-6"
+        className="w-[122px] text-[14px] font-semibold leading-5"
         style={{ color: COLORS.text }}
       >
         {label}
@@ -60,7 +61,7 @@ function MemberDetailRow({
       <View className="flex-1 items-end">
         {children ?? (
           <Text
-            className="text-right text-[16px] font-semibold leading-6"
+            className="text-right text-[13px] font-semibold leading-5"
             style={{ color: COLORS.muted }}
             numberOfLines={1}
           >
@@ -79,6 +80,7 @@ export default function HomeMemberScreen() {
   const homesQuery = useHomesQuery();
   const homeId = params.homeId ?? homesQuery.data?.[0]?.id ?? null;
   const settingsQuery = useHomeSettingsQuery(homeId);
+  const currentUser = useAuthStore((state) => state.user);
   const updateRoleMutation = useUpdateHomeMemberRoleMutation(homeId);
   const removeMemberMutation = useRemoveHomeMemberMutation(homeId);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -88,6 +90,7 @@ export default function HomeMemberScreen() {
       settingsQuery.data?.members.find((item) => item.id === params.memberId),
     [params.memberId, settingsQuery.data?.members]
   );
+  const isSelf = Boolean(member && currentUser?.id === member.userId);
 
   const updateRole = async (role: HomeMemberRoleInput) => {
     if (!member) return;
@@ -172,15 +175,17 @@ export default function HomeMemberScreen() {
               onPress={() => setShowRoleModal(true)}
             />
 
-            <Pressable
-              className="mt-16 items-center py-5"
-              accessibilityRole="button"
-              onPress={removeMember}
-            >
-              <Text className="text-[18px] font-extrabold text-[#D61F1F]">
-                Remove Member
-              </Text>
-            </Pressable>
+            {!isSelf ? (
+              <Pressable
+                className="mt-16 items-center py-5"
+                accessibilityRole="button"
+                onPress={removeMember}
+              >
+                <Text className="text-[16px] font-extrabold text-[#D61F1F]">
+                  Remove Member
+                </Text>
+              </Pressable>
+            ) : null}
           </ScrollView>
         )}
 

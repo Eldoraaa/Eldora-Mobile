@@ -10,9 +10,11 @@ type SceneListRowProps = {
   scene: EldoraScene;
   devicesById?: Map<string, EldoraDevice>;
   onPress?: () => void;
+  onRun?: () => void;
+  isRunning?: boolean;
 };
 
-export function SceneListRow({ scene, devicesById, onPress }: SceneListRowProps) {
+export function SceneListRow({ scene, devicesById, onPress, onRun, isRunning }: SceneListRowProps) {
   const Icon = scene.mode === "tap" ? MousePointerClick : Bell;
   const deviceSummary = getSceneDeviceSummary(scene, devicesById);
 
@@ -45,6 +47,24 @@ export function SceneListRow({ scene, devicesById, onPress }: SceneListRowProps)
           {scene.roomCategory ? ` | ${scene.roomCategory.name}` : ""}
         </Text>
       </View>
+      {onRun ? (
+        <TouchableOpacity
+          className="ml-3 rounded-full px-4 py-2"
+          style={{ backgroundColor: COLORS.coral }}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`Run ${scene.name}`}
+          disabled={isRunning}
+          onPress={(event) => {
+            event.stopPropagation();
+            onRun();
+          }}
+        >
+          <Text className="text-[13px] font-extrabold text-white">
+            {isRunning ? "Running" : "Run"}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 }

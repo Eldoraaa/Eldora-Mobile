@@ -4,5 +4,6 @@ export const sceneApi = {
   getScenes: sceneService.getScenes,
   getScene: sceneService.getScene,
   createScene: sceneService.createScene,
+  executeScene: sceneService.executeScene,
   updateScene: sceneService.updateScene,
 };

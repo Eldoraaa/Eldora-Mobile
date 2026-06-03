@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
+import Toast from "react-native-toast-message";
 import { ChevronDown, Plus } from "lucide-react-native";
 import { AddDeviceMenu } from "@/components/devices/AddDeviceMenu";
 import { HomeSelectorMenu } from "@/components/home/HomeSelectorMenu";
@@ -14,7 +15,7 @@ import {
   useRoomCategoriesQuery,
 } from "@/hooks/useDeviceQueries";
 import { useHomesQuery } from "@/hooks/useHomeManagementQueries";
-import { useScenesQuery } from "@/hooks/useSceneQueries";
+import { useExecuteSceneMutation, useScenesQuery } from "@/hooks/useSceneQueries";
 import { SceneMode } from "@/types/scene.types";
 import { groupScenesByDevice, sceneMatchesRoom } from "@/utils/scene.utils";
 
@@ -47,6 +48,7 @@ export default function SceneScreen() {
     homeId: selectedHome?.id,
     mode,
   });
+  const executeSceneMutation = useExecuteSceneMutation();
   const scenes = scenesQuery.data ?? [];
   const devicesById = useMemo(
     () =>
@@ -83,6 +85,9 @@ export default function SceneScreen() {
             <TouchableOpacity
               className="flex-row items-center"
               activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Select home"
+              accessibilityHint="Open the home selector"
               onPress={() => {
                 setShowDeviceMenu(false);
                 setShowHomeMenu(true);
@@ -95,6 +100,9 @@ export default function SceneScreen() {
             </TouchableOpacity>
             <View className="flex-row items-center">
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Open add menu"
+                accessibilityHint="Add a device or create a scene"
                 onPress={() => {
                   setShowHomeMenu(false);
                   setShowDeviceMenu((value) => !value);
@@ -121,7 +129,12 @@ export default function SceneScreen() {
           />
 
           <View className="mt-8 flex-row items-center">
-            <TouchableOpacity onPress={() => setMode("automation")}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Automation scenes"
+              accessibilityState={{ selected: mode === "automation" }}
+              onPress={() => setMode("automation")}
+            >
               <Text
                 className={`mr-7 text-[18px] font-extrabold leading-6 ${
                   mode === "automation" ? "text-[#17202A]" : "text-[#5F6B7A]"
@@ -130,7 +143,12 @@ export default function SceneScreen() {
                 Automation
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setMode("tap")}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Tap-to-run scenes"
+              accessibilityState={{ selected: mode === "tap" }}
+              onPress={() => setMode("tap")}
+            >
               <Text
                 className={`text-[18px] font-semibold leading-6 ${
                   mode === "tap" ? "text-[#17202A]" : "text-[#5F6B7A]"
@@ -182,9 +200,17 @@ export default function SceneScreen() {
                     key={scene.id}
                     scene={scene}
                     devicesById={devicesById}
-                    onPress={() =>
-                      router.push(`/scene-detail?id=${scene.id}` as never)
+                    onPress={() => router.push(`/scene-detail?id=${scene.id}` as never)}
+                    onRun={
+                      mode === "tap"
+                        ? () =>
+                            executeSceneMutation.mutate(scene.id, {
+                              onSuccess: () => Toast.show({ type: "success", text1: "Scene executed" }),
+                              onError: () => Toast.show({ type: "error", text1: "Scene did not run" }),
+                            })
+                        : undefined
                     }
+                    isRunning={executeSceneMutation.isPending}
                   />
                 ))}
               </View>

@@ -50,6 +50,18 @@ export function useCreateSceneMutation() {
   });
 }
 
+export function useExecuteSceneMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sceneId: string) => sceneApi.executeScene(sceneId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.home.safetySummary });
+    },
+  });
+}
+
 export function useUpdateSceneMutation(sceneId?: string | null) {
   const queryClient = useQueryClient();
 

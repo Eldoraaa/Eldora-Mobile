@@ -38,6 +38,10 @@ export const sceneService = {
     return response.data.data;
   },
 
+  async executeScene(sceneId: string): Promise<void> {
+    await apiClient.post<ApiResponse<null>>(`${ENDPOINTS.SCENES}/${sceneId}/execute`);
+  },
+
   async updateScene(
     sceneId: string,
     payload: UpdateScenePayload

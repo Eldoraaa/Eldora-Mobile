@@ -28,10 +28,36 @@ import { useDevicesScreenQuery, useRoomCategoriesQuery } from "@/hooks/useDevice
 import { useHomesQuery } from "@/hooks/useHomeManagementQueries";
 import { useCreateSceneMutation } from "@/hooks/useSceneQueries";
 import { EldoraDevice } from "@/types/device.types";
-import { SceneDeviceType } from "@/types/scene.types";
+import { SceneActionType, SceneConditionKind, SceneDeviceType } from "@/types/scene.types";
 
 type BuilderStep = "setup" | "device" | "rule";
 type BindableDeviceType = Exclude<SceneDeviceType, "any">;
+
+type RuleOption = {
+  label: string;
+  kind: SceneConditionKind;
+  triggerType: "device_status_changes" | "schedule";
+  deviceType: SceneDeviceType;
+};
+
+type ActionOption = {
+  label: string;
+  type: SceneActionType;
+  target: "caregiver" | "eldora_core" | "aegiswear";
+};
+
+const RULE_OPTIONS: RuleOption[] = [
+  { label: "Fall detected", kind: "fall_detected", triggerType: "device_status_changes", deviceType: "aegiswear" },
+  { label: "Device offline", kind: "device_offline", triggerType: "device_status_changes", deviceType: "any" },
+  { label: "Scheduled time", kind: "schedule", triggerType: "schedule", deviceType: "eldora_core" },
+];
+
+const ACTION_OPTIONS: ActionOption[] = [
+  { label: "Send push alert", type: "send_push_alert", target: "caregiver" },
+  { label: "Speak on Core", type: "speak_on_core", target: "eldora_core" },
+  { label: "Activate local alarm", type: "activate_local_alarm", target: "aegiswear" },
+  { label: "Follow up if no response", type: "send_push_alert_if_no_response", target: "caregiver" },
+];
 
 function deviceLooksLike(device: EldoraDevice, deviceName: string) {
   const haystack = `${device.name ?? ""} ${device.deviceId ?? ""}`.toLowerCase();
@@ -137,22 +163,50 @@ export default function SceneBuilderScreen() {
   const [name, setName] = useState(template?.title ?? "");
   const [roomCategoryId, setRoomCategoryId] = useState<string | null>(null);
   const [deviceBindings, setDeviceBindings] = useState<Partial<Record<BindableDeviceType, string>>>({});
+  const [selectedRuleLabel, setSelectedRuleLabel] = useState<string | null>(null);
+  const [selectedActionTypes, setSelectedActionTypes] = useState<SceneActionType[]>([]);
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [actionTitle, setActionTitle] = useState("");
+  const [actionBody, setActionBody] = useState("");
+  const [coreMessage, setCoreMessage] = useState("");
+  const [followUpDelay, setFollowUpDelay] = useState("15");
 
   useEffect(() => {
     setName(template?.title ?? "");
     setStep("setup");
+    const defaultRule = RULE_OPTIONS.find((rule) => rule.kind === template?.triggerConfig.condition?.kind) ?? RULE_OPTIONS[0];
+    setSelectedRuleLabel(defaultRule.label);
+    setScheduleTime(template?.triggerConfig.condition?.schedule?.time ?? "09:00");
+    setSelectedActionTypes((template?.actions.steps ?? []).map((action) => action.type === "core_voice_check_in" ? "speak_on_core" : action.type));
+    const firstNotification = template?.actions.steps.find((action) => action.type === "send_push_alert" || action.type === "send_push_alert_if_no_response");
+    const firstCoreMessage = template?.actions.steps.find((action) => action.type === "speak_on_core" || action.type === "core_voice_check_in");
+    const firstFollowUp = template?.actions.steps.find((action) => action.type === "send_push_alert_if_no_response");
+    setActionTitle(firstNotification?.title ?? template?.title ?? "Eldora alert");
+    setActionBody(firstNotification?.body ?? template?.description ?? "Please check Eldora immediately.");
+    setCoreMessage(firstCoreMessage?.message ?? "Your family is checking in. Are you feeling okay?");
+    setFollowUpDelay(String(firstFollowUp?.delayMinutes ?? 15));
   }, [template]);
 
+  const selectedRule = useMemo(
+    () => RULE_OPTIONS.find((rule) => rule.label === selectedRuleLabel) ?? RULE_OPTIONS[0],
+    [selectedRuleLabel]
+  );
+
   const triggerDeviceNames = useMemo(() => {
-    if (!template) return [];
-    const triggerDeviceType = template.triggerConfig.condition?.deviceType;
-    if (triggerDeviceType === "aegiswear") return ["AegisWear"];
-    if (triggerDeviceType === "eldora_core") return ["Eldora Core"];
-    if (triggerDeviceType === "any") return template.devices.map((device) => device.name);
-    return template.devices
-      .filter((device) => template.actions.steps.some((step) => step.target === deviceBindingKey(device.name)))
-      .map((device) => device.name);
-  }, [template]);
+    const names = new Set<string>();
+    if (selectedRule.deviceType === "aegiswear") names.add("AegisWear");
+    if (selectedRule.deviceType === "eldora_core") names.add("Eldora Core");
+    if (selectedRule.deviceType === "any") {
+      names.add("AegisWear");
+      names.add("Eldora Core");
+    }
+    selectedActionTypes.forEach((type) => {
+      const action = ACTION_OPTIONS.find((item) => item.type === type);
+      if (action?.target === "aegiswear") names.add("AegisWear");
+      if (action?.target === "eldora_core") names.add("Eldora Core");
+    });
+    return Array.from(names);
+  }, [selectedActionTypes, selectedRule.deviceType]);
 
   const triggerDeviceGroups = useMemo(
     () =>
@@ -209,18 +263,47 @@ export default function SceneBuilderScreen() {
   const draftTriggerConfig = useMemo(
     () => ({
       schemaVersion: 1 as const,
+      condition: {
+        kind: selectedRule.kind,
+        deviceType: selectedRule.deviceType,
+        ...(selectedRule.kind === "device_offline" ? { durationMinutes: 10 } : {}),
+        ...(selectedRule.kind === "schedule"
+          ? { schedule: { frequency: "daily" as const, time: scheduleTime } }
+          : {}),
+      },
       ...(hasDeviceBindings ? { deviceBindings: cleanedDeviceBindings } : {}),
     }),
-    [cleanedDeviceBindings, hasDeviceBindings]
+    [cleanedDeviceBindings, hasDeviceBindings, scheduleTime, selectedRule]
   );
 
   const draftActions = useMemo(
     () => ({
       schemaVersion: 1 as const,
-      steps: [],
+      steps: selectedActionTypes.map((type) => {
+        const option = ACTION_OPTIONS.find((item) => item.type === type) ?? ACTION_OPTIONS[0];
+        if (type === "send_push_alert" || type === "send_push_alert_if_no_response") {
+          return {
+            type,
+            target: option.target,
+            notificationType: selectedRule.kind === "fall_detected" ? "alarm" as const : selectedRule.kind === "device_offline" ? "device" as const : "home" as const,
+            title: actionTitle.trim() || option.label,
+            body: actionBody.trim() || "Please check Eldora immediately.",
+            severity: selectedRule.kind === "fall_detected" ? "critical" as const : selectedRule.kind === "device_offline" ? "warning" as const : "normal" as const,
+            ...(type === "send_push_alert_if_no_response" ? { delayMinutes: Number(followUpDelay) || 15 } : {}),
+          };
+        }
+        if (type === "speak_on_core" || type === "core_voice_check_in") {
+          return {
+            type,
+            target: option.target,
+            message: coreMessage.trim() || "Your family is checking in. Are you feeling okay?",
+          };
+        }
+        return { type, target: option.target };
+      }),
       ...(hasDeviceBindings ? { deviceBindings: cleanedDeviceBindings } : {}),
     }),
-    [cleanedDeviceBindings, hasDeviceBindings]
+    [actionBody, actionTitle, cleanedDeviceBindings, coreMessage, followUpDelay, hasDeviceBindings, selectedActionTypes, selectedRule.kind]
   );
 
   const selectedRoomName =
@@ -259,6 +342,15 @@ export default function SceneBuilderScreen() {
       return;
     }
 
+    if (selectedActionTypes.length === 0) {
+      Toast.show({
+        type: "error",
+        text1: "Action required",
+        text2: "Choose at least one action for this scene.",
+      });
+      return;
+    }
+
     if (!selectedHome) {
       Toast.show({
         type: "error",
@@ -273,7 +365,7 @@ export default function SceneBuilderScreen() {
       const createdScene = await createSceneMutation.mutateAsync({
         homeId: selectedHome.id,
         name: name.trim() || template.title,
-        triggerType: template.triggerType,
+        triggerType: selectedRule.triggerType,
         roomCategoryId,
         triggerConfig: draftTriggerConfig,
         actions: draftActions,
@@ -317,7 +409,7 @@ export default function SceneBuilderScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
         className="mx-auto w-full max-w-[430px] flex-1 bg-white"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
       >
         <View className="flex-row items-center justify-between px-5 py-4">
@@ -372,7 +464,7 @@ export default function SceneBuilderScreen() {
               </View>
 
               <Text className="mt-5 text-[14px] font-semibold leading-5" style={{ color: COLORS.muted }}>
-                Conditions and actions are added after the scene is saved, so the rule stays explicit.
+                The template will save its default IF/THEN rule. You can refine it after saving.
               </Text>
             </>
           ) : null}
@@ -451,30 +543,129 @@ export default function SceneBuilderScreen() {
               </View>
 
               <View className="mt-12">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
-                    If
-                  </Text>
-                </View>
+                <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
+                  If
+                </Text>
                 <Text className="mt-2 text-[16px] font-semibold leading-6" style={{ color: COLORS.text }}>
-                  When any condition is met
+                  Choose what should trigger this scene.
                 </Text>
-                <View className="mt-5 h-px" style={{ backgroundColor: COLORS.line }} />
-                <Text className="py-5 text-[15px] font-semibold leading-5" style={{ color: COLORS.muted }}>
-                  No condition yet. After saving, open the scene and use the plus button to add one.
-                </Text>
+                <View className="mt-5 flex-row flex-wrap gap-2">
+                  {RULE_OPTIONS.map((rule) => {
+                    const active = selectedRule.label === rule.label;
+                    return (
+                      <TouchableOpacity
+                        key={rule.label}
+                        className="rounded-full px-4 py-3"
+                        style={{ backgroundColor: active ? COLORS.coralSoft : COLORS.surfaceMuted }}
+                        activeOpacity={0.78}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        onPress={() => setSelectedRuleLabel(rule.label)}
+                      >
+                        <Text className="text-[13px] font-extrabold" style={{ color: active ? COLORS.coral : COLORS.text }}>
+                          {rule.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {selectedRule.kind === "schedule" ? (
+                  <View className="mt-5">
+                    <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                      Schedule time
+                    </Text>
+                    <TextInput
+                      value={scheduleTime}
+                      onChangeText={setScheduleTime}
+                      placeholder="09:00"
+                      placeholderTextColor={COLORS.disabled}
+                      className="h-[50px] rounded-[12px] border px-4 text-[16px] font-semibold"
+                      style={{ borderColor: COLORS.line, color: COLORS.text }}
+                      accessibilityLabel="Schedule time"
+                      returnKeyType="done"
+                    />
+                  </View>
+                ) : null}
               </View>
 
               <View className="mt-12">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
-                    Then
-                  </Text>
-                </View>
-                <View className="mt-5 h-px" style={{ backgroundColor: COLORS.line }} />
-                <Text className="py-5 text-[15px] font-semibold leading-5" style={{ color: COLORS.muted }}>
-                  No action yet. After saving, open the scene and use the plus button to add what should happen.
+                <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
+                  Then
                 </Text>
+                <Text className="mt-2 text-[16px] font-semibold leading-6" style={{ color: COLORS.text }}>
+                  Choose one or more actions.
+                </Text>
+                <View className="mt-5 flex-row flex-wrap gap-2">
+                  {ACTION_OPTIONS.map((action) => {
+                    const active = selectedActionTypes.includes(action.type);
+                    return (
+                      <TouchableOpacity
+                        key={action.type}
+                        className="rounded-full px-4 py-3"
+                        style={{ backgroundColor: active ? COLORS.coralSoft : COLORS.surfaceMuted }}
+                        activeOpacity={0.78}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        onPress={() =>
+                          setSelectedActionTypes((current) =>
+                            active ? current.filter((type) => type !== action.type) : [...current, action.type]
+                          )
+                        }
+                      >
+                        <Text className="text-[13px] font-extrabold" style={{ color: active ? COLORS.coral : COLORS.text }}>
+                          {action.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {selectedActionTypes.some((type) => type === "send_push_alert" || type === "send_push_alert_if_no_response") ? (
+                  <View className="mt-5 gap-3">
+                    <TextInput
+                      value={actionTitle}
+                      onChangeText={setActionTitle}
+                      placeholder="Notification title"
+                      placeholderTextColor={COLORS.disabled}
+                      className="h-[50px] rounded-[12px] border px-4 text-[15px] font-semibold"
+                      style={{ borderColor: COLORS.line, color: COLORS.text }}
+                      accessibilityLabel="Notification title"
+                    />
+                    <TextInput
+                      value={actionBody}
+                      onChangeText={setActionBody}
+                      placeholder="Notification body"
+                      placeholderTextColor={COLORS.disabled}
+                      className="min-h-[72px] rounded-[12px] border px-4 py-3 text-[15px] font-semibold"
+                      style={{ borderColor: COLORS.line, color: COLORS.text, textAlignVertical: "top" }}
+                      accessibilityLabel="Notification body"
+                      multiline
+                    />
+                  </View>
+                ) : null}
+                {selectedActionTypes.includes("speak_on_core") ? (
+                  <TextInput
+                    value={coreMessage}
+                    onChangeText={setCoreMessage}
+                    placeholder="What should Eldora Core say?"
+                    placeholderTextColor={COLORS.disabled}
+                    className="mt-5 min-h-[72px] rounded-[12px] border px-4 py-3 text-[15px] font-semibold"
+                    style={{ borderColor: COLORS.line, color: COLORS.text, textAlignVertical: "top" }}
+                    accessibilityLabel="Eldora Core speech message"
+                    multiline
+                  />
+                ) : null}
+                {selectedActionTypes.includes("send_push_alert_if_no_response") ? (
+                  <TextInput
+                    value={followUpDelay}
+                    onChangeText={setFollowUpDelay}
+                    placeholder="Follow-up delay in minutes"
+                    placeholderTextColor={COLORS.disabled}
+                    keyboardType="number-pad"
+                    className="mt-5 h-[50px] rounded-[12px] border px-4 text-[15px] font-semibold"
+                    style={{ borderColor: COLORS.line, color: COLORS.text }}
+                    accessibilityLabel="Follow-up delay in minutes"
+                  />
+                ) : null}
               </View>
 
               <View className="mt-10">

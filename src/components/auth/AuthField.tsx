@@ -8,6 +8,13 @@ type AuthFieldProps = {
 };
 
 export function AuthField({ label, error, children }: AuthFieldProps) {
+  const labelledChildren = React.isValidElement(children)
+    ? React.cloneElement(children, {
+        accessibilityLabel: (children.props as { accessibilityLabel?: string }).accessibilityLabel ?? label,
+        accessibilityHint: error ? error : undefined,
+      } as Partial<React.ComponentProps<typeof Text>>)
+    : children;
+
   return (
     <View>
       <Text className="mb-2 text-[13px] font-bold text-eldora-text">
@@ -18,7 +25,7 @@ export function AuthField({ label, error, children }: AuthFieldProps) {
           error ? "border-alert-critical" : "border-eldora-line"
         }`}
       >
-        {children}
+        {labelledChildren}
       </View>
       {error ? (
         <Text className="mt-1.5 text-[12px] font-semibold text-alert-critical">

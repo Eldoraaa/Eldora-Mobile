@@ -15,6 +15,8 @@ export function ScreenHeader({ title, onBack, right }: ScreenHeaderProps) {
       <Pressable
         className="h-[50px] w-[50px] items-center justify-center"
         accessibilityRole="button"
+        accessibilityLabel="Go back"
+        accessibilityHint="Return to the previous screen"
         onPress={onBack}
       >
         <ChevronLeft size={32} color={COLORS.text} strokeWidth={2.4} />

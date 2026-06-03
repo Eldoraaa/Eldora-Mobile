@@ -19,6 +19,7 @@ import {
 import { NearbyHubRow } from "@/components/devices/NearbyHubRow";
 import { ScanningRadar } from "@/components/devices/ScanningRadar";
 import {
+  useDevicesScreenQuery,
   useDiscoverLocalHubsMutation,
   usePairLocalDeviceMutation,
 } from "@/hooks/useDeviceQueries";
@@ -27,6 +28,10 @@ import { LocalProvisioningInfo } from "@/types/device.types";
 
 type SetupType = "core" | "aegiswear";
 type SetupPhase = "guide" | "searching" | "found" | "not-found";
+
+function isAlreadyPairedHub(hub: LocalProvisioningInfo, devices: { deviceId: string }[]) {
+  return devices.some((device) => device.deviceId === hub.deviceKey);
+}
 
 const SETUP_COPY = {
   core: {
@@ -169,6 +174,8 @@ export default function DeviceSetupScreen() {
   const [stepIndex, setStepIndex] = useState(0);
   const [phase, setPhase] = useState<SetupPhase>("guide");
   const [nearbyHubs, setNearbyHubs] = useState<LocalProvisioningInfo[]>([]);
+  const devicesQuery = useDevicesScreenQuery();
+  const pairedDevices = devicesQuery.data?.devices ?? [];
   const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
   const pairLocalDeviceMutation = usePairLocalDeviceMutation();
   const isLastStep = stepIndex === copy.steps.length - 1;
@@ -196,8 +203,9 @@ export default function DeviceSetupScreen() {
     }
 
     const hubs = await discoverLocalHubsMutation.mutateAsync();
-    setNearbyHubs(hubs);
-    setPhase(hubs.length > 0 ? "found" : "not-found");
+    const unpairedHubs = hubs.filter((hub) => !isAlreadyPairedHub(hub, pairedDevices));
+    setNearbyHubs(unpairedHubs);
+    setPhase(unpairedHubs.length > 0 ? "found" : "not-found");
   };
 
   const advanceTutorial = () => {
@@ -242,7 +250,7 @@ export default function DeviceSetupScreen() {
     return (
       <SafeAreaView className="flex-1 bg-white">
         <View className="mx-auto w-full max-w-[430px] flex-1 bg-white px-8">
-          <Pressable className="mt-5 h-12 w-12 items-center justify-center" onPress={closeSetup}>
+          <Pressable className="mt-5 h-12 w-12 items-center justify-center" accessibilityRole="button" accessibilityLabel="Close device setup" onPress={closeSetup}>
             <X size={36} color={COLORS.text} strokeWidth={2.2} />
           </Pressable>
           <View className="mt-24 items-center">
@@ -272,7 +280,7 @@ export default function DeviceSetupScreen() {
     return (
       <SafeAreaView className="flex-1 bg-white">
         <View className="mx-auto w-full max-w-[430px] flex-1 bg-white px-8">
-          <Pressable className="mt-5 h-12 w-12 items-center justify-center" onPress={closeSetup}>
+          <Pressable className="mt-5 h-12 w-12 items-center justify-center" accessibilityRole="button" accessibilityLabel="Close device setup" onPress={closeSetup}>
             <X size={36} color={COLORS.text} strokeWidth={2.2} />
           </Pressable>
           <View className="mt-24">
@@ -280,7 +288,7 @@ export default function DeviceSetupScreen() {
               className="text-[26px] font-extrabold leading-8"
               style={{ color: COLORS.text }}
             >
-              No device found
+              No new device found
             </Text>
             <Text
               className="mt-8 text-[20px] font-extrabold leading-7"
@@ -315,6 +323,8 @@ export default function DeviceSetupScreen() {
               className="h-[58px] items-center justify-center rounded-[16px]"
               style={{ backgroundColor: COLORS.coral }}
               activeOpacity={0.82}
+              accessibilityRole="button"
+              accessibilityLabel="Retry device search"
               onPress={startPairingSearch}
             >
               <Text className="text-[17px] font-extrabold text-white">Retry</Text>
@@ -330,7 +340,7 @@ export default function DeviceSetupScreen() {
       <SafeAreaView className="flex-1 bg-white">
         <View className="mx-auto w-full max-w-[430px] flex-1 bg-white">
           <View className="px-8">
-            <Pressable className="mt-5 h-12 w-12 items-center justify-center" onPress={closeSetup}>
+            <Pressable className="mt-5 h-12 w-12 items-center justify-center" accessibilityRole="button" accessibilityLabel="Close device setup" onPress={closeSetup}>
               <X size={36} color={COLORS.text} strokeWidth={2.2} />
             </Pressable>
             <Text className="mt-12 text-[28px] font-extrabold leading-9" style={{ color: COLORS.text }}>
@@ -358,7 +368,7 @@ export default function DeviceSetupScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <View className="mx-auto w-full max-w-[430px] flex-1 bg-white px-8">
         <View className="h-[76px] flex-row items-center justify-between">
-          <Pressable className="h-12 w-12 items-center justify-center" onPress={closeSetup}>
+          <Pressable className="h-12 w-12 items-center justify-center" accessibilityRole="button" accessibilityLabel="Close device setup" onPress={closeSetup}>
             <X size={36} color={COLORS.text} strokeWidth={2.2} />
           </Pressable>
           <Text className="text-[17px] font-semibold" style={{ color: COLORS.muted }}>

@@ -22,6 +22,8 @@ export function AddDeviceMenu({
   return (
     <View
       className="absolute right-5 z-10 w-[220px] rounded-[18px] bg-white py-2"
+      accessibilityRole="menu"
+      accessibilityLabel="Add menu"
       style={{
         top,
         shadowColor: COLORS.text,
@@ -38,6 +40,8 @@ export function AddDeviceMenu({
         }}
         className="flex-row items-center gap-4 px-5 py-3.5"
         activeOpacity={0.78}
+        accessibilityRole="menuitem"
+        accessibilityLabel="Add device"
       >
         <RouterIcon size={22} color={COLORS.text} />
         <Text
@@ -57,6 +61,8 @@ export function AddDeviceMenu({
             }}
             className="flex-row items-center gap-4 px-5 py-3.5"
             activeOpacity={0.78}
+            accessibilityRole="menuitem"
+            accessibilityLabel="Create scene"
           >
             <CheckSquare size={22} color={COLORS.text} />
             <Text

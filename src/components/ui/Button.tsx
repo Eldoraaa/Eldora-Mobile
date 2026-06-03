@@ -41,6 +41,9 @@ export const Button = ({
       disabled={disabled || isLoading}
       className={`${baseClass} ${variantClass} ${className ?? ""}`}
       activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: Boolean(disabled || isLoading), busy: Boolean(isLoading) }}
     >
       {isLoading ? (
         <ActivityIndicator

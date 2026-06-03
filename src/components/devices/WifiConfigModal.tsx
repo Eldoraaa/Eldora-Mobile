@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Eye, EyeOff, Wifi } from "lucide-react-native";
+import { COLORS } from "@/constants/theme";
 import { WifiNetwork } from "@/types/device.types";
 import { WifiNetworkRow } from "./WifiNetworkRow";
 
@@ -40,10 +41,12 @@ function Field({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#B8B0A8"
+          placeholderTextColor={COLORS.disabled}
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           className="flex-1 py-0 text-[15px] font-semibold text-[#17202A]"
+          accessibilityLabel={label}
+          returnKeyType="done"
         />
         {right}
       </View>
@@ -95,6 +98,7 @@ export function WifiConfigModal({
       visible={visible}
       transparent
       animationType="fade"
+      accessibilityViewIsModal
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
@@ -102,7 +106,7 @@ export function WifiConfigModal({
         behavior="translate-with-padding"
       >
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="rounded-t-[34px] bg-white px-5 pb-8 pt-5">
+        <View className="rounded-t-[28px] bg-white px-5 pb-8 pt-5" accessibilityRole="summary" accessibilityLabel="WiFi setup form">
           <View className="mb-6 h-1.5 w-12 self-center rounded-full bg-gray-200" />
           <View className="mb-5 flex-row items-center justify-between">
             <View>
@@ -110,7 +114,7 @@ export function WifiConfigModal({
               <Text className="mt-1 text-sm text-[#5F6B7A]">{title}</Text>
             </View>
             <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#FFE7E2]">
-              <Wifi size={23} color="#D95545" />
+              <Wifi size={23} color={COLORS.coral} />
             </View>
           </View>
 
@@ -144,6 +148,9 @@ export function WifiConfigModal({
                   disabled={isScanningWifi || !targetIp}
                   className="rounded-xl bg-white px-3 py-2"
                   activeOpacity={0.82}
+                  accessibilityRole="button"
+                  accessibilityLabel="Refresh WiFi networks"
+                  accessibilityState={{ disabled: isScanningWifi || !targetIp, busy: isScanningWifi }}
                 >
                   <Text className="text-[12px] font-bold text-[#D95545]">
                     {isScanningWifi ? "Checking" : "Refresh"}
@@ -153,7 +160,7 @@ export function WifiConfigModal({
 
               {isScanningWifi ? (
                 <View className="flex-row items-center border-t border-[#EEF3F7] py-3">
-                  <ActivityIndicator color="#D95545" />
+                  <ActivityIndicator color={COLORS.coral} />
                   <Text className="ml-3 text-[13px] font-semibold text-[#5F6B7A]">
                     Checking networks near Eldora Core...
                   </Text>
@@ -182,7 +189,7 @@ export function WifiConfigModal({
                 Selected network
               </Text>
               <View className="h-[54px] flex-row items-center rounded-2xl bg-[#FAF7F2] px-4">
-                <Wifi size={18} color="#D95545" />
+                <Wifi size={18} color={COLORS.coral} />
                 <Text
                   className="ml-3 flex-1 text-[15px] font-bold text-[#17202A]"
                   numberOfLines={1}
@@ -206,9 +213,9 @@ export function WifiConfigModal({
                   }
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color="#5F6B7A" />
+                    <EyeOff size={18} color={COLORS.muted} />
                   ) : (
-                    <Eye size={18} color="#5F6B7A" />
+                    <Eye size={18} color={COLORS.muted} />
                   )}
                 </TouchableOpacity>
               }
@@ -221,6 +228,9 @@ export function WifiConfigModal({
               disabled={isSendingWifi}
               className="h-14 items-center justify-center rounded-2xl bg-[#D95545]"
               activeOpacity={0.9}
+              accessibilityRole="button"
+              accessibilityLabel="Send WiFi configuration"
+              accessibilityState={{ disabled: isSendingWifi, busy: isSendingWifi }}
             >
               {isSendingWifi ? (
                 <ActivityIndicator color="#FFFFFF" />

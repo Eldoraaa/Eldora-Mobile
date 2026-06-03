@@ -8,5 +8,8 @@ export const COLORS = {
   coralSoft: "#FFE7E2",
   success: "#45A36B",
   warning: "#D69E2E",
-  disabled: "#B8B0A8",
+  disabled: "#7A6F66",
+  white: "#FFFFFF",
+  overlay: "rgba(0, 0, 0, 0.35)",
+  softBorder: "#EEF3F7",
 } as const;

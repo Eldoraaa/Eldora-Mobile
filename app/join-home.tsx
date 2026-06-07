@@ -91,49 +91,52 @@ export default function JoinHomeScreen() {
             </Text>
           </View>
 
-          <View
-            className="mt-9 h-[58px] flex-row items-center rounded-[18px] border px-4"
-            style={{
-              backgroundColor: COLORS.surfaceMuted,
-              borderColor: isFocused ? COLORS.coral : COLORS.line,
-            }}
-          >
-            <TextInput
-              className="h-full flex-1 py-0 pr-3 text-[17px] font-bold"
-              style={{ color: COLORS.text }}
-              value={inviteCode}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              placeholder="Invitation code"
-              placeholderTextColor={COLORS.disabled}
-              returnKeyType="go"
-              accessibilityLabel="Invitation code"
-              accessibilityHint="Enter the shared home invitation code"
-              selectionColor={COLORS.coral}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onChangeText={setInviteCode}
-              onSubmitEditing={joinHome}
-            />
-            <Pressable
-              className="h-11 w-11 items-center justify-center rounded-[14px]"
-              style={{ backgroundColor: canSubmit ? COLORS.coral : "#FFFFFF" }}
-              accessibilityRole="button"
-              accessibilityLabel="Join home"
-              accessibilityState={{ disabled: !canSubmit, busy: joinHomeMutation.isPending }}
-              disabled={!canSubmit}
-              onPress={joinHome}
+          <View className="mt-9">
+            <Text className="mb-2 text-[13px] font-bold" style={{ color: COLORS.text }}>
+              Invitation code
+            </Text>
+            <View
+              className="h-14 flex-row items-center rounded-2xl border bg-white px-4"
+              style={{
+                borderColor: isFocused ? COLORS.coral : COLORS.line,
+              }}
             >
-              {joinHomeMutation.isPending ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <ArrowRight
-                  size={22}
-                  color={canSubmit ? "#FFFFFF" : COLORS.disabled}
-                  strokeWidth={2.5}
-                />
-              )}
-            </Pressable>
+              <TextInput
+                className="h-full flex-1 py-0 pr-3 text-[15px] font-semibold"
+                style={{ color: COLORS.text }}
+                value={inviteCode}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder="Enter invitation code"
+                placeholderTextColor="#6F7A87"
+                returnKeyType="go"
+                accessibilityLabel="Invitation code"
+                accessibilityHint="Enter the shared home invitation code"
+                selectionColor={COLORS.coral}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onChangeText={setInviteCode}
+                onSubmitEditing={joinHome}
+              />
+              <Pressable
+                className="h-10 w-10 items-center justify-center"
+                accessibilityRole="button"
+                accessibilityLabel="Join home"
+                accessibilityState={{ disabled: !canSubmit, busy: joinHomeMutation.isPending }}
+                disabled={!canSubmit}
+                onPress={joinHome}
+              >
+                {joinHomeMutation.isPending ? (
+                  <ActivityIndicator color={COLORS.coral} />
+                ) : (
+                  <ArrowRight
+                    size={22}
+                    color={canSubmit ? COLORS.coral : COLORS.disabled}
+                    strokeWidth={2.5}
+                  />
+                )}
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

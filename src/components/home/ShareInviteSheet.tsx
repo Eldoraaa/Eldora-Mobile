@@ -26,10 +26,10 @@ export function ShareInviteSheet({
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="fade" accessibilityViewIsModal onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" accessibilityViewIsModal onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/35">
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="mx-4 overflow-hidden rounded-[22px] bg-white" accessibilityRole="summary" accessibilityLabel="Share invitation sheet">
+        <View className="overflow-hidden rounded-t-[24px] bg-white" accessibilityRole="summary" accessibilityLabel="Share invitation sheet">
           <View className="px-8 pb-8 pt-8">
             <Text
               className="text-center text-[20px] font-extrabold"
@@ -70,20 +70,6 @@ export function ShareInviteSheet({
               </Text>
             </View>
           </View>
-          <View className="h-px" style={{ backgroundColor: COLORS.line }} />
-          <Pressable
-            className="h-[64px] items-center justify-center"
-            accessibilityRole="button"
-            accessibilityLabel="Cancel sharing"
-            onPress={onClose}
-          >
-            <Text
-              className="text-[19px] font-extrabold"
-              style={{ color: COLORS.text }}
-            >
-              Cancel
-            </Text>
-          </Pressable>
         </View>
       </View>
     </Modal>

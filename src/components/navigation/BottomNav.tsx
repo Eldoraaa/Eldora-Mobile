@@ -2,13 +2,14 @@ import React, { useEffect } from "react";
 import { BackHandler, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import {
+  Bell,
   CheckSquare,
   Home,
   LucideIcon,
   UserRound,
 } from "lucide-react-native";
 
-export type BottomNavRoute = "home" | "scene" | "me";
+export type BottomNavRoute = "home" | "scene" | "alerts" | "me";
 
 type BottomNavProps = {
   active: BottomNavRoute;
@@ -21,11 +22,12 @@ const ICON_STROKE_WIDTH = 2.15;
 const TABS: Array<{
   route: BottomNavRoute;
   label: string;
-  href: "/home" | "/scene" | "/settings";
+  href: "/home" | "/scene" | "/alerts" | "/settings";
   Icon: LucideIcon;
 }> = [
   { route: "home", label: "Home", href: "/home", Icon: Home },
   { route: "scene", label: "Scene", href: "/scene", Icon: CheckSquare },
+  { route: "alerts", label: "Alerts", href: "/alerts", Icon: Bell },
   { route: "me", label: "Me", href: "/settings", Icon: UserRound },
 ];
 

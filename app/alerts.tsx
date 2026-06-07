@@ -7,21 +7,19 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
   Bell,
-  ChevronLeft,
   Home,
   Router,
   Settings,
 } from "lucide-react-native";
+import { MainTabScreen } from "@/components/navigation/MainTabScreen";
 import { COLORS } from "@/constants/theme";
 import {
   useMarkNotificationReadMutation,
   useNotificationsQuery,
 } from "@/hooks/useNotificationQueries";
-import { useBackNavigation } from "@/hooks/useBackNavigation";
 import type {
   NotificationItem,
   NotificationType,
@@ -156,7 +154,6 @@ function EmptyMessages() {
 }
 
 export default function MessageCenterScreen() {
-  const goBack = useBackNavigation("/settings");
   const [selectedType, setSelectedType] = useState<NotificationType>("alarm");
   const { data, isLoading, isRefetching, refetch } = useNotificationsQuery({
     type: selectedType,
@@ -169,17 +166,10 @@ export default function MessageCenterScreen() {
   const notifications = data ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="mx-auto w-full max-w-[430px] flex-1 bg-white">
+    <MainTabScreen active="alerts">
+      <View className="flex-1 bg-white">
         <View className="h-[68px] flex-row items-center border-b border-[#F1F1F1] px-5">
-          <Pressable
-            className="h-11 w-11 items-center justify-center"
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={goBack}
-          >
-            <ChevronLeft size={28} color={COLORS.text} strokeWidth={2.35} />
-          </Pressable>
+          <View className="h-11 w-11" />
 
           <View className="flex-1 flex-row items-center justify-center gap-2">
             {FILTERS.map((filter) => (
@@ -256,6 +246,6 @@ export default function MessageCenterScreen() {
           </ScrollView>
         )}
       </View>
-    </SafeAreaView>
+    </MainTabScreen>
   );
 }

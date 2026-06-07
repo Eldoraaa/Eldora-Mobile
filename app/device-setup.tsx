@@ -26,7 +26,7 @@ import {
 import { COLORS } from "@/constants/theme";
 import { LocalProvisioningInfo } from "@/types/device.types";
 
-type SetupType = "core" | "aegiswear";
+type SetupType = "dorabot" | "dorashield";
 type SetupPhase = "guide" | "searching" | "found" | "not-found";
 
 function isAlreadyPairedHub(hub: LocalProvisioningInfo, devices: { deviceId: string }[]) {
@@ -34,24 +34,24 @@ function isAlreadyPairedHub(hub: LocalProvisioningInfo, devices: { deviceId: str
 }
 
 const SETUP_COPY = {
-  core: {
-    title: "Reset Eldora Core",
-    product: "Eldora Core",
+  dorabot: {
+    title: "Reset DoraBot",
+    product: "DoraBot",
     mode: "Wi-Fi pairing",
     steps: [
-      "Power on Eldora Core.",
+      "Power on DoraBot.",
       "Hold the PAIR button for 5 seconds until the indicator blinks.",
       "Keep this phone on the same Wi-Fi, then start pairing.",
     ],
   },
-  aegiswear: {
-    title: "Prepare AegisWear",
-    product: "AegisWear",
-    mode: "Wearable pairing",
+  dorashield: {
+    title: "Prepare DoraShield",
+    product: "DoraShield",
+    mode: "DoraShield pairing",
     steps: [
-      "Charge and power on AegisWear.",
-      "Attach it to the upper-body wearable layer.",
-      "Hold the PAIR button for 5 seconds and keep it near Eldora Core.",
+      "Charge and power on DoraShield.",
+      "Attach it to the upper-body safety layer.",
+      "Hold the PAIR button for 5 seconds and keep it near DoraBot.",
     ],
   },
 } as const;
@@ -72,7 +72,7 @@ function PairingStepVisual({
   return (
     <View className="mt-16 h-[178px] items-center justify-center">
       <View className="flex-row items-center justify-center gap-12">
-        {setupType === "core" ? (
+        {setupType === "dorabot" ? (
           <>
             <View className="h-24 w-20 items-center justify-center rounded-[22px] bg-white">
               <RouterIcon size={54} color={stroke} strokeWidth={1.55} />
@@ -169,7 +169,7 @@ function SearchingProgress() {
 
 export default function DeviceSetupScreen() {
   const params = useLocalSearchParams<{ type?: string }>();
-  const setupType: SetupType = params.type === "aegiswear" ? "aegiswear" : "core";
+  const setupType: SetupType = params.type === "dorashield" ? "dorashield" : "dorabot";
   const copy = SETUP_COPY[setupType];
   const [stepIndex, setStepIndex] = useState(0);
   const [phase, setPhase] = useState<SetupPhase>("guide");
@@ -196,7 +196,7 @@ export default function DeviceSetupScreen() {
     setNearbyHubs([]);
     setPhase("searching");
 
-    if (setupType === "aegiswear") {
+    if (setupType === "dorashield") {
       await new Promise((resolve) => setTimeout(resolve, 2600));
       setPhase("not-found");
       return;
@@ -224,7 +224,7 @@ export default function DeviceSetupScreen() {
         pairingToken: hub.pairingToken,
         localIp: hub.ipAddress,
         elderName: "Eldora User",
-        deviceName: "Eldora Core",
+        deviceName: "DoraBot",
         batteryLevel: hub.batteryLevel ?? undefined,
         isCharging: hub.isCharging,
         wifiSsid: hub.wifiSsid ?? undefined,
@@ -344,10 +344,10 @@ export default function DeviceSetupScreen() {
               <X size={36} color={COLORS.text} strokeWidth={2.2} />
             </Pressable>
             <Text className="mt-12 text-[28px] font-extrabold leading-9" style={{ color: COLORS.text }}>
-              Choose Eldora Core
+              Choose DoraBot
             </Text>
             <Text className="mt-4 text-[17px] font-medium leading-7" style={{ color: COLORS.muted }}>
-              Select the Core found on this Wi-Fi network to finish pairing.
+              Select the DoraBot found on this Wi-Fi network to finish pairing.
             </Text>
           </View>
           <ScrollView className="mt-5 flex-1" showsVerticalScrollIndicator={false}>
@@ -391,10 +391,10 @@ export default function DeviceSetupScreen() {
         </View>
 
         <View className="pb-9">
-          <View className="flex-row items-center">
+          <View className="flex-row items-center gap-3">
             {stepIndex > 0 ? (
               <TouchableOpacity
-                className="mr-3 h-[50px] w-[112px] items-center justify-center rounded-[14px] border"
+                className="h-[50px] flex-1 items-center justify-center rounded-[14px] border"
                 style={{ borderColor: COLORS.line, backgroundColor: "#FFFFFF" }}
                 activeOpacity={0.78}
                 onPress={() => setStepIndex((current) => Math.max(0, current - 1))}

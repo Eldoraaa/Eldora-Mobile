@@ -25,7 +25,7 @@ import { useHomesQuery, useSafetySummaryQuery, useWellnessSummaryQuery } from "@
 import {
   batteryColor,
   deviceStatusText,
-  isWearableDevice,
+  isDoraShieldDevice,
   signalLabel,
 } from "@/utils/device.utils";
 import { formatRelativeTime } from "@/utils/formatters";
@@ -157,9 +157,9 @@ export default function DeviceDetailScreen() {
   const safetySummaryQuery = useSafetySummaryQuery(selectedHome?.id);
   const wellnessSummaryQuery = useWellnessSummaryQuery(selectedHome?.id);
   const device = devicesQuery.data?.devices.find((item) => item.id === params.id);
-  const wearable = device ? isWearableDevice(device) : false;
-  const title = device ? (wearable ? "AegisWear" : "Eldora Core") : "Device";
-  const Icon = wearable ? ShieldCheck : RouterIcon;
+  const shield = device ? isDoraShieldDevice(device) : false;
+  const title = device ? (shield ? "DoraShield" : "DoraBot") : "Device";
+  const Icon = shield ? ShieldCheck : RouterIcon;
 
   const primaryRows = useMemo(() => {
     if (!device) return [];
@@ -316,10 +316,10 @@ export default function DeviceDetailScreen() {
             />
             <InsightMetric
               label="Signal"
-              value={!wearable ? signalLabel(device.wifiRssi) : "Wearable"}
-              helper={!wearable && device.wifiRssi !== null ? `${device.wifiRssi} dBm` : "No Wi-Fi metric"}
-              progress={!wearable ? signalScore : 70}
-              color={signalScore >= 65 || wearable ? COLORS.success : signalScore >= 40 ? COLORS.warning : COLORS.coral}
+              value={!shield ? signalLabel(device.wifiRssi) : "DoraShield"}
+              helper={!shield && device.wifiRssi !== null ? `${device.wifiRssi} dBm` : "No Wi-Fi metric"}
+              progress={!shield ? signalScore : 70}
+              color={signalScore >= 65 || shield ? COLORS.success : signalScore >= 40 ? COLORS.warning : COLORS.coral}
               Icon={Signal}
             />
             <InsightMetric
@@ -353,7 +353,7 @@ export default function DeviceDetailScreen() {
               }
             />
             <InfoRow label="Firmware" value={device.firmwareVersion ?? "Unknown"} />
-            {!wearable ? (
+            {!shield ? (
               <>
                 <InfoRow label="Care role" value="Voice companion and Wi-Fi hub" />
                 <InfoRow label="Wi-Fi" value={device.wifiSsid ?? "Not configured"} />
@@ -362,8 +362,8 @@ export default function DeviceDetailScreen() {
               </>
             ) : (
               <>
-                <InfoRow label="Care role" value="Fall alert wearable" />
-                <InfoRow label="Fall alerts" value="AegisWear movement event" />
+                <InfoRow label="Care role" value="Fall alert shield" />
+                <InfoRow label="Fall alerts" value="DoraShield movement event" />
               </>
             )}
           </View>
@@ -375,17 +375,17 @@ export default function DeviceDetailScreen() {
             >
               Actions
             </Text>
-            {!wearable ? (
+            {!shield ? (
               <>
                 <ActionRow
                   title="Configure Wi-Fi"
-                  description="Review pairing steps before changing the Core network."
+                  description="Review pairing steps before changing the DoraBot network."
                   Icon={Wifi}
-                  onPress={() => router.push("/device-setup?type=core" as never)}
+                  onPress={() => router.push("/device-setup?type=dorabot" as never)}
                 />
                 <ActionRow
-                  title="Create Core check-in scene"
-                  description="Make a tap-to-run scene that speaks through Eldora Core."
+                  title="Create DoraBot check-in scene"
+                  description="Make a tap-to-run scene that speaks through DoraBot."
                   Icon={Radio}
                   onPress={() =>
                     router.push("/scene-builder?template=scheduled_check_in" as never)
@@ -395,10 +395,10 @@ export default function DeviceDetailScreen() {
             ) : (
               <>
                 <ActionRow
-                  title="Review wearable setup"
-                  description="Check how AegisWear should be worn before pairing."
+                  title="Review shield setup"
+                  description="Check how DoraShield should be worn before pairing."
                   Icon={Bell}
-                  onPress={() => router.push("/device-setup?type=aegiswear" as never)}
+                  onPress={() => router.push("/device-setup?type=dorashield" as never)}
                 />
                 <ActionRow
                   title="Create fall response scene"

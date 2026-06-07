@@ -2,9 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -12,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import Toast from "react-native-toast-message";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -311,56 +310,63 @@ export default function HomeSettingsScreen() {
         />
 
         <Modal transparent visible={showContactModal} animationType="fade" accessibilityViewIsModal onRequestClose={() => setShowContactModal(false)}>
-          <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <KeyboardAvoidingView className="flex-1" behavior="translate-with-padding">
             <Pressable className="flex-1 justify-end bg-black/40" onPress={() => setShowContactModal(false)}>
               <Pressable
-                className="rounded-t-[28px] bg-white px-7 pb-10 pt-7"
+                className="max-h-[78%] rounded-t-[28px] bg-white"
                 accessibilityRole="summary"
                 accessibilityLabel="Emergency contact form"
                 onPress={(event) => event.stopPropagation()}
               >
-              <Text className="text-[22px] font-extrabold" style={{ color: COLORS.text }}>
-                Emergency Contact
-              </Text>
-              <Text className="mt-2 text-[14px] font-semibold leading-5" style={{ color: COLORS.muted }}>
-                This contact appears as a one-tap call action during alerts.
-              </Text>
-              <TextInput
-                value={contactName}
-                onChangeText={setContactName}
-                placeholder="Name"
-                placeholderTextColor={COLORS.disabled}
-                className="mt-6 h-12 rounded-[14px] border px-4 text-[15px] font-semibold"
-                style={{ borderColor: COLORS.line, color: COLORS.text }}
-                accessibilityLabel="Emergency contact name"
-                autoComplete="name"
-                returnKeyType="next"
-              />
-              <TextInput
-                value={contactPhone}
-                onChangeText={setContactPhone}
-                placeholder="Phone number"
-                placeholderTextColor={COLORS.disabled}
-                keyboardType="phone-pad"
-                className="mt-3 h-12 rounded-[14px] border px-4 text-[15px] font-semibold"
-                style={{ borderColor: COLORS.line, color: COLORS.text }}
-                accessibilityLabel="Emergency contact phone"
-                autoComplete="tel"
-                textContentType="telephoneNumber"
-                returnKeyType="done"
-                onSubmitEditing={saveEmergencyContact}
-              />
-              <Pressable
-                className="mt-5 h-12 items-center justify-center rounded-[16px]"
-                style={{ backgroundColor: COLORS.coral }}
-                accessibilityRole="button"
-                disabled={createEmergencyContactMutation.isPending}
-                onPress={saveEmergencyContact}
-              >
-                <Text className="font-extrabold text-white">
-                  {createEmergencyContactMutation.isPending ? "Saving..." : "Save Contact"}
-                </Text>
-              </Pressable>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  contentContainerClassName="px-7 pb-8 pt-7"
+                >
+                  <View className="mb-5 h-1.5 w-12 self-center rounded-full bg-[#E8ECEF]" />
+                  <Text className="text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+                    Emergency Contact
+                  </Text>
+                  <Text className="mt-2 text-[14px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                    This contact appears as a one-tap call action during alerts.
+                  </Text>
+                  <TextInput
+                    value={contactName}
+                    onChangeText={setContactName}
+                    placeholder="Name"
+                    placeholderTextColor={COLORS.disabled}
+                    className="mt-6 h-[52px] rounded-[14px] border px-4 text-[15px] font-semibold"
+                    style={{ borderColor: COLORS.line, color: COLORS.text }}
+                    accessibilityLabel="Emergency contact name"
+                    autoComplete="name"
+                    returnKeyType="next"
+                  />
+                  <TextInput
+                    value={contactPhone}
+                    onChangeText={setContactPhone}
+                    placeholder="Phone number"
+                    placeholderTextColor={COLORS.disabled}
+                    keyboardType="phone-pad"
+                    className="mt-3 h-[52px] rounded-[14px] border px-4 text-[15px] font-semibold"
+                    style={{ borderColor: COLORS.line, color: COLORS.text }}
+                    accessibilityLabel="Emergency contact phone"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
+                    returnKeyType="done"
+                    onSubmitEditing={saveEmergencyContact}
+                  />
+                  <Pressable
+                    className="mt-5 h-[52px] items-center justify-center rounded-[16px]"
+                    style={{ backgroundColor: COLORS.coral }}
+                    accessibilityRole="button"
+                    disabled={createEmergencyContactMutation.isPending}
+                    onPress={saveEmergencyContact}
+                  >
+                    <Text className="font-extrabold text-white">
+                      {createEmergencyContactMutation.isPending ? "Saving..." : "Save Contact"}
+                    </Text>
+                  </Pressable>
+                </ScrollView>
               </Pressable>
             </Pressable>
           </KeyboardAvoidingView>

@@ -160,7 +160,7 @@ export default function DeviceManagementScreen() {
               No devices yet
             </Text>
             <Text className="mt-3 text-center text-[15px] font-semibold leading-6 text-[#5F6B7A]">
-              Pair Eldora Core first, then manage the order here.
+              Pair DoraBot first, then manage the order here.
             </Text>
           </View>
         )}

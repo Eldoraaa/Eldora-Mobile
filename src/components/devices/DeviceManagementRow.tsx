@@ -3,7 +3,7 @@ import { PanResponder, Pressable, Text, View } from "react-native";
 import { Check, Router as RouterIcon, ShieldCheck } from "lucide-react-native";
 import { COLORS } from "@/constants/theme";
 import { EldoraDevice } from "@/types/device.types";
-import { deviceRoomLabel, isWearableDevice } from "@/utils/device.utils";
+import { deviceRoomLabel, isDoraShieldDevice } from "@/utils/device.utils";
 
 const ROW_HEIGHT = 92;
 
@@ -24,7 +24,7 @@ export function DeviceManagementRow({
   onToggle,
   onDrop,
 }: DeviceManagementRowProps) {
-  const Icon = isWearableDevice(device) ? ShieldCheck : RouterIcon;
+  const Icon = isDoraShieldDevice(device) ? ShieldCheck : RouterIcon;
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_event, gesture) =>

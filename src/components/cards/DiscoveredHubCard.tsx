@@ -27,7 +27,7 @@ export function DiscoveredHubCard({
             className="text-[15px] font-bold"
             style={{ color: COLORS.text }}
           >
-            Eldora Core
+            DoraBot
           </Text>
           <Text
             className="mt-0.5 text-xs"

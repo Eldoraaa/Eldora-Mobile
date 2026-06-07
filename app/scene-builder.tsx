@@ -43,32 +43,32 @@ type RuleOption = {
 type ActionOption = {
   label: string;
   type: SceneActionType;
-  target: "caregiver" | "eldora_core" | "aegiswear";
+  target: "caregiver" | "dorabot" | "dorashield";
 };
 
 const RULE_OPTIONS: RuleOption[] = [
-  { label: "Fall detected", kind: "fall_detected", triggerType: "device_status_changes", deviceType: "aegiswear" },
+  { label: "Fall detected", kind: "fall_detected", triggerType: "device_status_changes", deviceType: "dorashield" },
   { label: "Device offline", kind: "device_offline", triggerType: "device_status_changes", deviceType: "any" },
-  { label: "Scheduled time", kind: "schedule", triggerType: "schedule", deviceType: "eldora_core" },
+  { label: "Scheduled time", kind: "schedule", triggerType: "schedule", deviceType: "dorabot" },
 ];
 
 const ACTION_OPTIONS: ActionOption[] = [
   { label: "Send push alert", type: "send_push_alert", target: "caregiver" },
-  { label: "Speak on Core", type: "speak_on_core", target: "eldora_core" },
-  { label: "Activate local alarm", type: "activate_local_alarm", target: "aegiswear" },
+  { label: "Speak on DoraBot", type: "speak_on_dorabot", target: "dorabot" },
+  { label: "Activate local alarm", type: "activate_local_alarm", target: "dorashield" },
   { label: "Follow up if no response", type: "send_push_alert_if_no_response", target: "caregiver" },
 ];
 
 function deviceLooksLike(device: EldoraDevice, deviceName: string) {
   const haystack = `${device.name ?? ""} ${device.deviceId ?? ""}`.toLowerCase();
-  if (deviceName === "Eldora Core") return haystack.includes("core") || haystack.includes("eldora");
-  if (deviceName === "AegisWear") return haystack.includes("aegis") || haystack.includes("wear");
+  if (deviceName === "DoraBot") return haystack.includes("dorabot") || haystack.includes("eldora");
+  if (deviceName === "DoraShield") return haystack.includes("dorashield") || haystack.includes("shield") || haystack.includes("vest");
   return false;
 }
 
 function deviceBindingKey(deviceName: string): BindableDeviceType | null {
-  if (deviceName === "Eldora Core") return "eldora_core";
-  if (deviceName === "AegisWear") return "aegiswear";
+  if (deviceName === "DoraBot") return "dorabot";
+  if (deviceName === "DoraShield") return "dorashield";
   return null;
 }
 
@@ -86,8 +86,8 @@ function DeviceRow({
   selected: boolean;
   onPress: () => void;
 }) {
-  const isAegis = `${device.name} ${device.deviceId}`.toLowerCase().includes("aegis");
-  const Icon = isAegis ? ShieldCheck : Router;
+  const isDoraShield = `${device.name} ${device.deviceId}`.toLowerCase().includes("dorashield") || `${device.name} ${device.deviceId}`.toLowerCase().includes("shield");
+  const Icon = isDoraShield ? ShieldCheck : Router;
 
   return (
     <TouchableOpacity
@@ -168,7 +168,7 @@ export default function SceneBuilderScreen() {
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const [actionTitle, setActionTitle] = useState("");
   const [actionBody, setActionBody] = useState("");
-  const [coreMessage, setCoreMessage] = useState("");
+  const [dorabotMessage, setDoraBotMessage] = useState("");
   const [followUpDelay, setFollowUpDelay] = useState("15");
 
   useEffect(() => {
@@ -177,13 +177,13 @@ export default function SceneBuilderScreen() {
     const defaultRule = RULE_OPTIONS.find((rule) => rule.kind === template?.triggerConfig.condition?.kind) ?? RULE_OPTIONS[0];
     setSelectedRuleLabel(defaultRule.label);
     setScheduleTime(template?.triggerConfig.condition?.schedule?.time ?? "09:00");
-    setSelectedActionTypes((template?.actions.steps ?? []).map((action) => action.type === "core_voice_check_in" ? "speak_on_core" : action.type));
+    setSelectedActionTypes((template?.actions.steps ?? []).map((action) => action.type === "dorabot_voice_check_in" ? "speak_on_dorabot" : action.type));
     const firstNotification = template?.actions.steps.find((action) => action.type === "send_push_alert" || action.type === "send_push_alert_if_no_response");
-    const firstCoreMessage = template?.actions.steps.find((action) => action.type === "speak_on_core" || action.type === "core_voice_check_in");
+    const firstDoraBotMessage = template?.actions.steps.find((action) => action.type === "speak_on_dorabot" || action.type === "dorabot_voice_check_in");
     const firstFollowUp = template?.actions.steps.find((action) => action.type === "send_push_alert_if_no_response");
     setActionTitle(firstNotification?.title ?? template?.title ?? "Eldora alert");
     setActionBody(firstNotification?.body ?? template?.description ?? "Please check Eldora immediately.");
-    setCoreMessage(firstCoreMessage?.message ?? "Your family is checking in. Are you feeling okay?");
+    setDoraBotMessage(firstDoraBotMessage?.message ?? "Your family is checking in. Are you feeling okay?");
     setFollowUpDelay(String(firstFollowUp?.delayMinutes ?? 15));
   }, [template]);
 
@@ -194,16 +194,16 @@ export default function SceneBuilderScreen() {
 
   const triggerDeviceNames = useMemo(() => {
     const names = new Set<string>();
-    if (selectedRule.deviceType === "aegiswear") names.add("AegisWear");
-    if (selectedRule.deviceType === "eldora_core") names.add("Eldora Core");
+    if (selectedRule.deviceType === "dorashield") names.add("DoraShield");
+    if (selectedRule.deviceType === "dorabot") names.add("DoraBot");
     if (selectedRule.deviceType === "any") {
-      names.add("AegisWear");
-      names.add("Eldora Core");
+      names.add("DoraShield");
+      names.add("DoraBot");
     }
     selectedActionTypes.forEach((type) => {
       const action = ACTION_OPTIONS.find((item) => item.type === type);
-      if (action?.target === "aegiswear") names.add("AegisWear");
-      if (action?.target === "eldora_core") names.add("Eldora Core");
+      if (action?.target === "dorashield") names.add("DoraShield");
+      if (action?.target === "dorabot") names.add("DoraBot");
     });
     return Array.from(names);
   }, [selectedActionTypes, selectedRule.deviceType]);
@@ -292,18 +292,18 @@ export default function SceneBuilderScreen() {
             ...(type === "send_push_alert_if_no_response" ? { delayMinutes: Number(followUpDelay) || 15 } : {}),
           };
         }
-        if (type === "speak_on_core" || type === "core_voice_check_in") {
+        if (type === "speak_on_dorabot" || type === "dorabot_voice_check_in") {
           return {
             type,
             target: option.target,
-            message: coreMessage.trim() || "Your family is checking in. Are you feeling okay?",
+            message: dorabotMessage.trim() || "Your family is checking in. Are you feeling okay?",
           };
         }
         return { type, target: option.target };
       }),
       ...(hasDeviceBindings ? { deviceBindings: cleanedDeviceBindings } : {}),
     }),
-    [actionBody, actionTitle, cleanedDeviceBindings, coreMessage, followUpDelay, hasDeviceBindings, selectedActionTypes, selectedRule.kind]
+    [actionBody, actionTitle, cleanedDeviceBindings, dorabotMessage, followUpDelay, hasDeviceBindings, selectedActionTypes, selectedRule.kind]
   );
 
   const selectedRoomName =
@@ -642,15 +642,15 @@ export default function SceneBuilderScreen() {
                     />
                   </View>
                 ) : null}
-                {selectedActionTypes.includes("speak_on_core") ? (
+                {selectedActionTypes.includes("speak_on_dorabot") ? (
                   <TextInput
-                    value={coreMessage}
-                    onChangeText={setCoreMessage}
-                    placeholder="What should Eldora Core say?"
+                    value={dorabotMessage}
+                    onChangeText={setDoraBotMessage}
+                    placeholder="What should DoraBot say?"
                     placeholderTextColor={COLORS.disabled}
                     className="mt-5 min-h-[72px] rounded-[12px] border px-4 py-3 text-[15px] font-semibold"
                     style={{ borderColor: COLORS.line, color: COLORS.text, textAlignVertical: "top" }}
-                    accessibilityLabel="Eldora Core speech message"
+                    accessibilityLabel="DoraBot speech message"
                     multiline
                   />
                 ) : null}

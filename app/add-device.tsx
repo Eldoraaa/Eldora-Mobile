@@ -31,14 +31,14 @@ import { LocalProvisioningInfo } from "@/types/device.types";
 
 const MANUAL_DEVICE_TYPES = [
   {
-    title: "Eldora Core",
+    title: "DoraBot",
     Icon: RouterIcon,
-    action: "scan-core",
+    action: "scan-dorabot",
   },
   {
-    title: "AegisWear",
+    title: "DoraShield",
     Icon: ShieldCheck,
-    action: "aegiswear",
+    action: "dorashield",
   },
 ] as const;
 
@@ -74,7 +74,7 @@ export default function AddDeviceScreen() {
     }
   };
 
-  const findNearbyCore = async (silent = false) => {
+  const findNearbyDoraBot = async (silent = false) => {
     if (isSearchingRef.current) return;
     isSearchingRef.current = true;
     setIsSearching(true);
@@ -90,7 +90,7 @@ export default function AddDeviceScreen() {
       if (!silent && hubs.length > 0) {
         Toast.show({
           type: "success",
-          text1: "Eldora Core found",
+          text1: "DoraBot found",
           text2: "Choose the device below to pair it.",
         });
       }
@@ -106,8 +106,8 @@ export default function AddDeviceScreen() {
     const scan = async () => {
       if (!isMounted) return;
       const shouldShowResult =
-        params.type === "core" && params.fromSetup === "1";
-      await findNearbyCore(!shouldShowResult);
+        params.type === "dorabot" && params.fromSetup === "1";
+      await findNearbyDoraBot(!shouldShowResult);
     };
 
     void scan();
@@ -128,7 +128,7 @@ export default function AddDeviceScreen() {
         pairingToken: hub.pairingToken,
         localIp: hub.ipAddress,
         elderName: "Eldora User",
-        deviceName: "Eldora Core",
+        deviceName: "DoraBot",
         batteryLevel: hub.batteryLevel ?? undefined,
         isCharging: hub.isCharging,
         wifiSsid: hub.wifiSsid ?? undefined,
@@ -232,12 +232,12 @@ export default function AddDeviceScreen() {
                     title={deviceType.title}
                     Icon={deviceType.Icon}
                     onPress={() => {
-                      if (deviceType.action === "scan-core") {
-                        router.push("/device-setup?type=core" as never);
+                      if (deviceType.action === "scan-dorabot") {
+                        router.push("/device-setup?type=dorabot" as never);
                         return;
                       }
 
-                      router.push("/device-setup?type=aegiswear" as never);
+                      router.push("/device-setup?type=dorashield" as never);
                     }}
                   />
                 ))}

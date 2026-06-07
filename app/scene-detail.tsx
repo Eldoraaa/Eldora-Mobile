@@ -59,7 +59,7 @@ function triggerTitle(triggerConfig: SceneTriggerConfig | null) {
   if (!condition) return "Saved trigger";
   if (condition.kind === "manual_tap") return "Tap-to-run";
   if (condition.kind === "fall_detected") return "Fall detected";
-  if (condition.kind === "device_offline") return "Core offline";
+  if (condition.kind === "device_offline") return "DoraBot offline";
   if (condition.kind === "schedule") {
     return `Schedule : ${formatClockLabel(condition.schedule?.time)}`;
   }
@@ -70,9 +70,9 @@ function triggerDescription(triggerConfig: SceneTriggerConfig | null) {
   const condition = triggerConfig?.condition;
   if (!condition) return "Scene runs from the saved trigger.";
   if (condition.kind === "manual_tap") return "Family taps this scene from the app.";
-  if (condition.kind === "fall_detected") return "AegisWear detects a fall event.";
+  if (condition.kind === "fall_detected") return "DoraShield detects a fall event.";
   if (condition.kind === "device_offline") {
-    return `Eldora Core is offline for ${condition.durationMinutes ?? 10} minutes.`;
+    return `DoraBot is offline for ${condition.durationMinutes ?? 10} minutes.`;
   }
   if (condition.kind === "schedule") {
     return condition.schedule?.frequency === "weekly" ? "Every week" : "Every day";
@@ -95,8 +95,8 @@ function actionTitle(action: SceneActionStep) {
   if (action.type === "send_push_alert_if_no_response") {
     return action.title ?? "Notify if no response";
   }
-  if (action.type === "core_voice_check_in") return "Ask through Eldora Core";
-  if (action.type === "speak_on_core") return "Speak through Eldora Core";
+  if (action.type === "dorabot_voice_check_in") return "Ask through DoraBot";
+  if (action.type === "speak_on_dorabot") return "Speak through DoraBot";
   if (action.type === "activate_local_alarm") return "Local alarm";
   if (action.type === "show_call_elder_action") return "Show call action";
   return "Run action";
@@ -114,19 +114,19 @@ function actionDescription(action: SceneActionStep) {
       delayMinutes ? ` Wait ${delayMinutes} minutes before sending.` : ""
     }`;
   }
-  if (type === "activate_local_alarm") return "Turn on the local alarm on AegisWear.";
-  if (type === "core_voice_check_in") {
-    return message ? `Eldora Core asks: "${message}"` : "Eldora Core checks on the elder.";
+  if (type === "activate_local_alarm") return "Turn on the local alarm on DoraShield.";
+  if (type === "dorabot_voice_check_in") {
+    return message ? `DoraBot asks: "${message}"` : "DoraBot checks on the elder.";
   }
   if (type === "show_call_elder_action") return "Show quick call action.";
-  if (type === "speak_on_core") {
-    return message ? `Eldora Core says: "${message}"` : "Eldora Core plays the saved message.";
+  if (type === "speak_on_dorabot") {
+    return message ? `DoraBot says: "${message}"` : "DoraBot plays the saved message.";
   }
   return "Run saved action.";
 }
 
 function actionIcon(type: SceneActionType) {
-  if (type === "core_voice_check_in" || type === "speak_on_core") {
+  if (type === "dorabot_voice_check_in" || type === "speak_on_dorabot") {
     return <Router size={24} color={COLORS.coral} strokeWidth={2.1} />;
   }
   if (type === "activate_local_alarm") {
@@ -424,27 +424,27 @@ export default function SceneDetailScreen() {
       >
         <SheetOption
           title="Fall detected"
-          description="Run when AegisWear reports a fall event."
+          description="Run when DoraShield reports a fall event."
           icon={<Bell size={25} color={COLORS.coral} strokeWidth={2.1} />}
           disabled={updateSceneMutation.isPending}
           onPress={() =>
             void updateCondition(
-              { kind: "fall_detected", deviceType: "aegiswear" },
+              { kind: "fall_detected", deviceType: "dorashield" },
               "device_status_changes",
               "Condition updated"
             )
           }
         />
         <SheetOption
-          title="Core offline"
-          description="Run when Eldora Core stays offline for 10 minutes."
+          title="DoraBot offline"
+          description="Run when DoraBot stays offline for 10 minutes."
           icon={<WifiOff size={25} color={COLORS.warning} strokeWidth={2.1} />}
           disabled={updateSceneMutation.isPending}
           onPress={() =>
             void updateCondition(
               {
                 kind: "device_offline",
-                deviceType: "eldora_core",
+                deviceType: "dorabot",
                 durationMinutes: 10,
               },
               "device_status_changes",
@@ -461,7 +461,7 @@ export default function SceneDetailScreen() {
             void updateCondition(
               {
                 kind: "schedule",
-                deviceType: "eldora_core",
+                deviceType: "dorabot",
                 schedule: { frequency: "daily", time: "08:00" },
               },
               "schedule",
@@ -496,15 +496,15 @@ export default function SceneDetailScreen() {
           }
         />
         <SheetOption
-          title="Speak through Eldora Core"
-          description="Let Core say a check-in or reminder message."
+          title="Speak through DoraBot"
+          description="Let DoraBot say a check-in or reminder message."
           icon={<MessageCircle size={25} color={COLORS.coral} strokeWidth={2.1} />}
           disabled={updateSceneMutation.isPending}
           onPress={() =>
             void appendAction(
               {
-                type: "speak_on_core",
-                target: "eldora_core",
+                type: "speak_on_dorabot",
+                target: "dorabot",
                 message: "Your family is checking in. Are you feeling okay?",
               },
               "Action added"

@@ -20,13 +20,9 @@ export function deviceStatusText(isOnline: boolean) {
   return isOnline ? "Online" : "Offline";
 }
 
-export function isWearableDevice(device: EldoraDevice) {
+export function isDoraShieldDevice(device: EldoraDevice) {
   const value = `${device.name} ${device.deviceId}`.toLowerCase();
-  return (
-    value.includes("aegis") ||
-    value.includes("wear") ||
-    value.includes("vest")
-  );
+  return value.includes("dorashield") || value.includes("shield") || value.includes("vest");
 }
 
 export function deviceRoomLabel(device: EldoraDevice) {

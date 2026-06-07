@@ -75,7 +75,7 @@ export function NearbyHubRow({ hub, onPress, demo = false }: NearbyHubRowProps) 
               style={{ color: COLORS.text }}
               numberOfLines={1}
             >
-              Eldora Core
+              DoraBot
             </Text>
             {demo ? (
               <View

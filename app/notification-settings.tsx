@@ -56,7 +56,7 @@ export default function NotificationSettingsScreen() {
 
           <NotificationPreferenceRow
             title="Fall Alert"
-            subtitle="Notify when AegisWear detects a fall."
+            subtitle="Notify when DoraShield detects a fall."
             toggleValue={preferences?.fallAlertEnabled ?? true}
             onToggle={(value) =>
               updatePreferences.mutate({ fallAlertEnabled: value })
@@ -92,7 +92,7 @@ export default function NotificationSettingsScreen() {
 
           <NotificationPreferenceRow
             title="Device Offline"
-            subtitle="Notify when Eldora Core or AegisWear disconnects."
+            subtitle="Notify when DoraBot or DoraShield disconnects."
             toggleValue={preferences?.deviceOfflineAlertEnabled ?? true}
             onToggle={(value) =>
               updatePreferences.mutate({ deviceOfflineAlertEnabled: value })

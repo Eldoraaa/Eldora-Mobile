@@ -140,7 +140,7 @@ export default function HomeScreen() {
 
     if (!scanIp) {
       setWifiNetworks([]);
-      setWifiScanError("Connect this phone to the same WiFi as Eldora Core.");
+      setWifiScanError("Connect this phone to the same WiFi as DoraBot.");
       return;
     }
 
@@ -151,11 +151,11 @@ export default function HomeScreen() {
       const networks = await scanLocalWifiNetworksMutation.mutateAsync(scanIp);
       setWifiNetworks(networks);
       if (networks.length === 0) {
-        setWifiScanError("No WiFi networks found near Eldora Core.");
+        setWifiScanError("No WiFi networks found near DoraBot.");
       }
     } catch (err) {
       console.error("[Devices] Failed to scan WiFi networks:", err);
-      setWifiScanError("Could not scan WiFi networks from Eldora Core.");
+      setWifiScanError("Could not scan WiFi networks from DoraBot.");
     } finally {
       setIsScanningWifi(false);
     }
@@ -210,7 +210,7 @@ export default function HomeScreen() {
         pairingToken: hub.pairingToken,
         localIp: hub.ipAddress,
         elderName: "Eldora User",
-        deviceName: "Eldora Core",
+        deviceName: "DoraBot",
         batteryLevel: hub.batteryLevel ?? undefined,
         isCharging: hub.isCharging,
         wifiSsid: hub.wifiSsid ?? undefined,
@@ -234,7 +234,7 @@ export default function HomeScreen() {
         if (!silent) {
           Toast.show({
             type: "success",
-            text1: "Eldora Core connected",
+            text1: "DoraBot connected",
             text2: `${result.device.name} is now linked to this phone.`,
           });
         }
@@ -250,14 +250,14 @@ export default function HomeScreen() {
           status === 401
             ? "Sign in again, then pair this device."
             : status === 403
-              ? "Restart Eldora Core or wait for its next heartbeat, then try again."
+              ? "Restart DoraBot or wait for its next heartbeat, then try again."
               : status === 404
                 ? "Deploy the latest backend, then pair this device again."
                 : "Reconnect this phone to internet, then try again.";
 
         Toast.show({
           type: "error",
-          text1: status ? "Eldora Core found, pairing failed" : "Eldora Core found, backend not reachable",
+          text1: status ? "DoraBot found, pairing failed" : "DoraBot found, backend not reachable",
           text2,
         });
       }
@@ -279,12 +279,12 @@ export default function HomeScreen() {
       setDiscoveryError(null);
 
       if (unpairedHubs.length === 0) {
-        setDiscoveryError(hubs.length > 0 ? "No new Eldora Core found." : "No response from the Eldora Core setup address.");
+        setDiscoveryError(hubs.length > 0 ? "No new DoraBot found." : "No response from the DoraBot setup address.");
         if (!silent) {
           Toast.show({
             type: "error",
-            text1: hubs.length > 0 ? "No new Eldora Core found" : "No Eldora Core found",
-            text2: hubs.length > 0 ? "Connected devices are hidden from search results." : "Make sure this phone is on the same WiFi as Eldora Core.",
+            text1: hubs.length > 0 ? "No new DoraBot found" : "No DoraBot found",
+            text2: hubs.length > 0 ? "Connected devices are hidden from search results." : "Make sure this phone is on the same WiFi as DoraBot.",
           });
         }
         return;
@@ -296,7 +296,7 @@ export default function HomeScreen() {
       if (!silent) {
         Toast.show({
           type: "success",
-          text1: "Eldora Core found",
+          text1: "DoraBot found",
           text2: firstHub.hasWifi
             ? firstHub.ipAddress
             : "Waiting for WiFi connection",
@@ -309,7 +309,7 @@ export default function HomeScreen() {
     } catch (err) {
       console.error("[Devices] Failed to discover local hubs:", err);
       setDiscoveryError(
-        err instanceof Error ? err.message : "Could not reach Eldora Core."
+        err instanceof Error ? err.message : "Could not reach DoraBot."
       );
       if (!silent) {
         Toast.show({
@@ -418,10 +418,10 @@ export default function HomeScreen() {
         text1:
           wifiTarget.kind === "device" && wifiTarget.device.isOnline
             ? "WiFi updated"
-            : "WiFi received by Eldora Core",
+            : "WiFi received by DoraBot",
         text2:
           wifiTarget.kind === "device" && wifiTarget.device.isOnline
-            ? "Eldora Core will pick it up from the command queue."
+            ? "DoraBot will pick it up from the command queue."
             : "Reconnect this phone to internet, then finish pairing.",
       });
     } catch (err) {
@@ -481,8 +481,8 @@ export default function HomeScreen() {
 
   const wifiTitle =
     wifiTarget?.kind === "local"
-      ? "Eldora Core"
-      : wifiTarget?.device.name ?? "Eldora Core";
+      ? "DoraBot"
+      : wifiTarget?.device.name ?? "DoraBot";
   const wifiTargetIp =
     wifiTarget?.kind === "local"
       ? wifiTarget.hub.ipAddress
@@ -490,18 +490,18 @@ export default function HomeScreen() {
   const hasPairedHubs = devices.length > 0;
   const isAutoPairing = isDiscovering || isPairing;
   const hubTitle = isAutoPairing
-    ? "Looking for Eldora Core"
+    ? "Looking for DoraBot"
     : activeLocalHub
-      ? "Eldora Core detected"
+      ? "DoraBot detected"
       : hasPairedHubs
-        ? "Eldora Core connected"
-      : "No Eldora Core found";
+        ? "DoraBot connected"
+      : "No DoraBot found";
   const hubDescription = isAutoPairing
-    ? "Checking the current WiFi network for a nearby Eldora Core."
+    ? "Checking the current WiFi network for a nearby DoraBot."
     : activeLocalHub
-      ? "This phone can communicate with Eldora Core on the current network."
+      ? "This phone can communicate with DoraBot on the current network."
       : hasPairedHubs
-        ? "Manage connected devices below or pull down to search for another core."
+        ? "Manage connected devices below or pull down to search for another DoraBot."
       : discoveryError
         ? discoveryError
       : "Pull down to check the current WiFi network again.";
@@ -510,25 +510,26 @@ export default function HomeScreen() {
     : hasPairedHubs
       ? `${devices.length} paired device${devices.length === 1 ? "" : "s"}`
     : null;
-  const coreDevice =
-    devices.find((device) => device.name.toLowerCase().includes("core")) ??
+  const dorabotDevice =
+    devices.find((device) => device.name.toLowerCase().includes("dorabot")) ??
+    devices.find((device) => !device.name.toLowerCase().includes("dorashield")) ??
     devices[0] ??
     null;
-  const wearableDevice =
+  const dorashieldDevice =
     devices.find((device) => {
       const name = `${device.name} ${device.deviceId}`.toLowerCase();
-      return name.includes("aegis") || name.includes("wear") || name.includes("vest");
+      return name.includes("dorashield") || name.includes("shield") || name.includes("vest");
     }) ??
-    devices.find((device) => device.id !== coreDevice?.id) ??
+    devices.find((device) => device.id !== dorabotDevice?.id) ??
     null;
-  const coreOnline = coreDevice?.isOnline ?? !!activeLocalHub;
-  const coreLastSeen = coreDevice?.lastSeen
-    ? formatRelativeTime(coreDevice.lastSeen)
+  const dorabotOnline = dorabotDevice?.isOnline ?? !!activeLocalHub;
+  const dorabotLastSeen = dorabotDevice?.lastSeen
+    ? formatRelativeTime(dorabotDevice.lastSeen)
     : activeLocalHub
       ? "Detected nearby"
       : "No heartbeat";
-  const wearableLastSeen = wearableDevice?.lastSeen
-    ? formatRelativeTime(wearableDevice.lastSeen)
+  const dorashieldLastSeen = dorashieldDevice?.lastSeen
+    ? formatRelativeTime(dorashieldDevice.lastSeen)
     : "Not paired yet";
   const displayDevices = devices.filter((device) => {
     if (selectedRoomSlug === "all") return true;
@@ -551,18 +552,18 @@ export default function HomeScreen() {
       : false;
   }).map((device) => {
     const searchableName = `${device.name} ${device.deviceId}`.toLowerCase();
-    const isWearable =
-      searchableName.includes("aegis") ||
-      searchableName.includes("wear") ||
+    const isDoraShield =
+      searchableName.includes("dorashield") ||
+      searchableName.includes("shield") ||
       searchableName.includes("vest");
 
     return {
       device,
-      title: isWearable ? "AegisWear" : device.name,
+      title: isDoraShield ? "DoraShield" : device.name,
       room: device.wifiSsid
         ? `${device.elderName} | ${device.wifiSsid}`
         : `${device.elderName} | ${device.lastSeen ? formatRelativeTime(device.lastSeen) : "No heartbeat"}`,
-      Icon: isWearable ? ShieldCheck : RouterIcon,
+      Icon: isDoraShield ? ShieldCheck : RouterIcon,
       accent: COLORS.coral,
     };
   });
@@ -637,7 +638,7 @@ export default function HomeScreen() {
                 <View className="mr-5 h-[52px] w-[52px] items-center justify-center rounded-full bg-white">
                   {isAutoPairing ? (
                     <ActivityIndicator color="#D95545" />
-                  ) : coreOnline ? (
+                  ) : dorabotOnline ? (
                     <Wifi size={26} color="#D95545" />
                   ) : (
                     <WifiOff size={26} color="#B8B0A8" />
@@ -650,10 +651,10 @@ export default function HomeScreen() {
               <View className="mt-7 flex-row justify-between">
                 <View className="max-w-[30%]">
                   <Text className="text-[15px] font-extrabold text-[#17202A]">
-                    {coreOnline ? "Ready" : "Setup"}
+                    {dorabotOnline ? "Ready" : "Setup"}
                   </Text>
                   <Text className="text-[12px] font-semibold text-[#5F6B7A]">
-                    Core status
+                    DoraBot status
                   </Text>
                 </View>
                 <View className="max-w-[30%]">
@@ -666,7 +667,7 @@ export default function HomeScreen() {
                 </View>
                 <View className="max-w-[34%]">
                   <Text className="text-[15px] font-extrabold text-[#17202A]" numberOfLines={1}>
-                    {activeLocalHub?.wifiSsid ?? coreDevice?.wifiSsid ?? "WiFi"}
+                    {activeLocalHub?.wifiSsid ?? dorabotDevice?.wifiSsid ?? "WiFi"}
                   </Text>
                   <Text className="text-[12px] font-semibold text-[#5F6B7A]">
                     Network
@@ -799,7 +800,7 @@ export default function HomeScreen() {
                         Available WiFi
                       </Text>
                       <Text className="mt-1 text-[13px] font-semibold text-[#17202A]">
-                        Choose the home network for Eldora Core.
+                        Choose the home network for DoraBot.
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -821,7 +822,7 @@ export default function HomeScreen() {
                     <View className="flex-row items-center border-t border-[#EEF3F7] py-3">
                       <ActivityIndicator color="#D95545" />
                       <Text className="ml-3 text-[13px] font-semibold text-[#5F6B7A]">
-                        Checking networks near Eldora Core...
+                        Checking networks near DoraBot...
                       </Text>
                     </View>
                   ) : wifiNetworks.length > 0 ? (

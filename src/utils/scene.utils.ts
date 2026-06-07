@@ -10,8 +10,8 @@ type BoundDeviceType = Exclude<SceneDeviceType, "any">;
 type SceneCondition = NonNullable<SceneTriggerConfig["condition"]>;
 
 function formatDeviceType(deviceType?: string | null) {
-  if (deviceType === "aegiswear") return "AegisWear";
-  if (deviceType === "eldora_core") return "Eldora Core";
+  if (deviceType === "dorashield") return "DoraShield";
+  if (deviceType === "dorabot") return "DoraBot";
   return null;
 }
 
@@ -47,7 +47,7 @@ export function getSceneDeviceSummary(
   sceneConditions(scene).forEach((condition) => {
     const triggerDeviceType = condition.deviceType;
     const triggerDeviceId =
-      triggerDeviceType === "aegiswear" || triggerDeviceType === "eldora_core"
+      triggerDeviceType === "dorashield" || triggerDeviceType === "dorabot"
         ? triggerConfig?.deviceBindings?.[triggerDeviceType]
         : undefined;
     const triggerDevice =
@@ -58,7 +58,7 @@ export function getSceneDeviceSummary(
 
   actions?.steps?.forEach((step) => {
     const actionDeviceId =
-      step.target === "aegiswear" || step.target === "eldora_core"
+      step.target === "dorashield" || step.target === "dorabot"
         ? actions.deviceBindings?.[step.target] ?? triggerConfig?.deviceBindings?.[step.target]
         : undefined;
     const actionDevice =
@@ -68,7 +68,7 @@ export function getSceneDeviceSummary(
   });
 
   if (devices.size === 0 && scene.mode === "tap") {
-    devices.add("Eldora Core");
+    devices.add("DoraBot");
   }
 
   return Array.from(devices).join(" + ");
@@ -92,17 +92,17 @@ export function getSceneBoundDeviceIds(scene: EldoraScene) {
 function primaryDeviceType(scene: EldoraScene): BoundDeviceType | null {
   const triggerDeviceType = sceneConditions(scene).find(
     (condition): condition is SceneCondition & { deviceType: BoundDeviceType } =>
-      condition.deviceType === "aegiswear" || condition.deviceType === "eldora_core"
+      condition.deviceType === "dorashield" || condition.deviceType === "dorabot"
   )?.deviceType;
-  if (triggerDeviceType === "aegiswear" || triggerDeviceType === "eldora_core") {
+  if (triggerDeviceType === "dorashield" || triggerDeviceType === "dorabot") {
     return triggerDeviceType;
   }
 
   const actionTarget = sceneActions(scene)?.steps.find(
-    (step) => step.target === "aegiswear" || step.target === "eldora_core"
+    (step) => step.target === "dorashield" || step.target === "dorabot"
   )?.target;
 
-  return actionTarget === "aegiswear" || actionTarget === "eldora_core"
+  return actionTarget === "dorashield" || actionTarget === "dorabot"
     ? actionTarget
     : null;
 }

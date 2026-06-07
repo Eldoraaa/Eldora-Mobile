@@ -17,11 +17,11 @@ export type SceneActionType =
   | "send_push_alert"
   | "send_push_alert_if_no_response"
   | "activate_local_alarm"
-  | "core_voice_check_in"
+  | "dorabot_voice_check_in"
   | "show_call_elder_action"
-  | "speak_on_core";
+  | "speak_on_dorabot";
 
-export type SceneDeviceType = "eldora_core" | "aegiswear" | "any";
+export type SceneDeviceType = "dorabot" | "dorashield" | "any";
 
 export type SceneTriggerConfig = {
   schemaVersion: 1;
@@ -44,7 +44,7 @@ export type SceneActions = {
   deviceBindings?: Partial<Record<Exclude<SceneDeviceType, "any">, string>>;
   steps: Array<{
     type: SceneActionType;
-    target?: "caregiver" | "eldora_core" | "aegiswear";
+    target?: "caregiver" | "dorabot" | "dorashield";
     message?: string;
     delayMinutes?: number;
     notificationType?: "alarm" | "home" | "device";
@@ -61,7 +61,7 @@ export type SceneTemplate = {
   description: string;
   category: "tap" | "safety" | "care" | "device";
   devices: Array<{
-    name: "Eldora Core" | "AegisWear";
+    name: "DoraBot" | "DoraShield";
     role: string;
   }>;
   ifLabel: string;

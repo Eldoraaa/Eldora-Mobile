@@ -21,6 +21,7 @@ export default function JoinHomeScreen() {
   const goBack = useBackNavigation("/home-management");
   const joinHomeMutation = useJoinHomeMutation();
   const [inviteCode, setInviteCode] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
   const normalizedCode = inviteCode.trim().toUpperCase();
   const canSubmit = normalizedCode.length >= 4 && !joinHomeMutation.isPending;
@@ -91,11 +92,14 @@ export default function JoinHomeScreen() {
           </View>
 
           <View
-            className="mx-5 mt-7 h-[54px] flex-row items-center rounded-[5px] border px-4"
-            style={{ borderColor: COLORS.line }}
+            className="mt-9 h-[58px] flex-row items-center rounded-[18px] border px-4"
+            style={{
+              backgroundColor: COLORS.surfaceMuted,
+              borderColor: isFocused ? COLORS.coral : COLORS.line,
+            }}
           >
             <TextInput
-              className="flex-1 text-center text-[17px] font-normal"
+              className="h-full flex-1 py-0 pr-3 text-[17px] font-bold"
               style={{ color: COLORS.text }}
               value={inviteCode}
               autoCapitalize="characters"
@@ -105,11 +109,15 @@ export default function JoinHomeScreen() {
               returnKeyType="go"
               accessibilityLabel="Invitation code"
               accessibilityHint="Enter the shared home invitation code"
+              selectionColor={COLORS.coral}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               onChangeText={setInviteCode}
               onSubmitEditing={joinHome}
             />
             <Pressable
-              className="h-10 w-10 items-center justify-center"
+              className="h-11 w-11 items-center justify-center rounded-[14px]"
+              style={{ backgroundColor: canSubmit ? COLORS.coral : "#FFFFFF" }}
               accessibilityRole="button"
               accessibilityLabel="Join home"
               accessibilityState={{ disabled: !canSubmit, busy: joinHomeMutation.isPending }}
@@ -117,11 +125,11 @@ export default function JoinHomeScreen() {
               onPress={joinHome}
             >
               {joinHomeMutation.isPending ? (
-                <ActivityIndicator color={COLORS.coral} />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <ArrowRight
-                  size={24}
-                  color={canSubmit ? COLORS.coral : COLORS.line}
+                  size={22}
+                  color={canSubmit ? "#FFFFFF" : COLORS.disabled}
                   strokeWidth={2.5}
                 />
               )}

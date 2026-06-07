@@ -140,7 +140,7 @@ export function WifiConfigModal({
                     Available WiFi
                   </Text>
                   <Text className="mt-1 text-[13px] font-semibold text-[#17202A]">
-                    Select the network Eldora Core should use.
+                    Select the network DoraBot should use.
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -162,7 +162,7 @@ export function WifiConfigModal({
                 <View className="flex-row items-center border-t border-[#EEF3F7] py-3">
                   <ActivityIndicator color={COLORS.coral} />
                   <Text className="ml-3 text-[13px] font-semibold text-[#5F6B7A]">
-                    Checking networks near Eldora Core...
+                    Checking networks near DoraBot...
                   </Text>
                 </View>
               ) : wifiNetworks.length > 0 ? (

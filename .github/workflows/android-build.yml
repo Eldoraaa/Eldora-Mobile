@@ -1,4 +1,4 @@
-name: Eldora Android APK Build
+name: Eldora Android Release Build
 
 on:
   workflow_dispatch:
@@ -76,7 +76,6 @@ jobs:
 
       - name: Configure release signing in build.gradle
         run: |
-          # Sisipkan signingConfigs.release dan terapkan ke buildTypes.release
           python3 - << 'PYEOF'
           import re
 
@@ -94,8 +93,6 @@ jobs:
               }
           """
 
-          # Terapkan signingConfig ke buildTypes.release DULU (sebelum signingConfigs diinsert)
-          # agar regex hanya mencocokkan satu 'release {' block (di buildTypes)
           content = re.sub(
               r'(release \{[^}]*?)(\})',
               r'\1            signingConfig signingConfigs.release\n        \2',
@@ -104,7 +101,6 @@ jobs:
               flags=re.DOTALL
           )
 
-          # Baru insert signingConfigs sebelum buildTypes
           content = content.replace(
               "    buildTypes {",
               signing_config + "    buildTypes {",
@@ -140,11 +136,11 @@ jobs:
           rm -rf android/app/.cxx
           rm -rf android/.gradle
 
-      - name: Build Android APK
+      - name: Build Android APK and AAB
         run: |
           cd android
           ./gradlew clean
-          ./gradlew assembleRelease --no-daemon --stacktrace --warning-mode all
+          ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace --warning-mode all
         env:
           KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -159,7 +155,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: eldora-release.apk
-          path: android/app/build/outputs/apk/release/
+          path: android/app/build/outputs/apk/release/*.apk
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eldora-release.aab
+          path: android/app/build/outputs/bundle/release/*.aab
 
       - name: Generate release tag
         id: release_tag
@@ -182,11 +184,14 @@ jobs:
           ## Recent Changes
           ${RECENT_CHANGES}
 
-          ## Instalasi
-          Download file APK di bawah dan install di perangkat Android.
+          ## Installation
+          Download the APK below and install it on an Android device.
 
-          ## Arsitektur
-          Build ini menggunakan arsitektur arm64-v8a (kompatibel dengan 99% perangkat Android modern).
+          ## App Bundle
+          The AAB file is included for Google Play Console releases.
+
+          ## Architecture
+          This build uses the arm64-v8a architecture, compatible with most modern Android devices.
           EOF
 
       - name: Create GitHub Release
@@ -197,6 +202,7 @@ jobs:
         run: |
           gh release create "${{ steps.release_tag.outputs.tag }}" \
             android/app/build/outputs/apk/release/*.apk \
+            android/app/build/outputs/bundle/release/*.aab \
             --title "Eldora Build #${{ github.run_number }}" \
             --notes-file release_notes.md \
             --target ${{ github.sha }}
@@ -204,6 +210,6 @@ jobs:
       - name: Release Status
         if: steps.create_release.outcome == 'failure'
         run: |
-          echo "APK tersimpan di Actions artifacts (GitHub Release gagal dibuat)"
+          echo "APK and AAB are saved in Actions artifacts because the GitHub Release failed"
           echo ""
-          echo "Untuk fix: Settings → Actions → Workflow permissions → Read and write"
+          echo "To fix: Settings → Actions → Workflow permissions → Read and write"

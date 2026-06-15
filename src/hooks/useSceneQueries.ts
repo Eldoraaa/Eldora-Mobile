@@ -62,6 +62,16 @@ export function useExecuteSceneMutation() {
   });
 }
 
+export function useDeleteSceneMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sceneId: string) => sceneApi.deleteScene(sceneId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["scenes"] });
+    },
+  });
+}
+
 export function useUpdateSceneMutation(sceneId?: string | null) {
   const queryClient = useQueryClient();
 

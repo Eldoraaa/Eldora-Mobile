@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -10,6 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
+import { COLORS } from "@/constants/theme";
 import {
   ArrowUp,
   Eye,
@@ -41,27 +41,17 @@ export default function DeviceManagementScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const hasSelection = selectedIds.size > 0;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const confirmDelete = () => {
-    const count = selectedIds.size;
-    Alert.alert(
-      "Remove device?",
-      `This will permanently remove ${count === 1 ? "this device" : `${count} devices`} and all related data. This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            for (const id of selectedIds) {
-              await deleteDeviceMutation.mutateAsync(id);
-            }
-            setSelectedIds(new Set());
-            Toast.show({ type: "success", text1: "Device removed" });
-          },
-        },
-      ]
-    );
+  const handleDeletePress = () => setConfirmingDelete(true);
+
+  const confirmDelete = async () => {
+    setConfirmingDelete(false);
+    for (const id of selectedIds) {
+      await deleteDeviceMutation.mutateAsync(id);
+    }
+    setSelectedIds(new Set());
+    Toast.show({ type: "success", text1: "Device removed" });
   };
   const selectedHidden = devices.some(
     (device) => selectedIds.has(device.id) && hiddenIds.has(device.id)
@@ -191,7 +181,37 @@ export default function DeviceManagementScreen() {
           </View>
         )}
 
-        {hasSelection ? (
+        {confirmingDelete ? (
+          <View className="border-t px-6 pb-5 pt-4" style={{ borderColor: COLORS.line, backgroundColor: "#fff" }}>
+            <Text className="text-[15px] font-extrabold" style={{ color: COLORS.text }}>
+              Remove {selectedIds.size === 1 ? "this device" : `${selectedIds.size} devices`}?
+            </Text>
+            <Text className="mt-1 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+              All related data will be deleted permanently.
+            </Text>
+            <View className="mt-4 flex-row gap-3">
+              <Pressable
+                className="h-[48px] flex-1 items-center justify-center rounded-[14px] border"
+                style={{ borderColor: COLORS.line }}
+                onPress={() => setConfirmingDelete(false)}
+              >
+                <Text className="text-[15px] font-extrabold" style={{ color: COLORS.muted }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                className="h-[48px] flex-1 items-center justify-center rounded-[14px]"
+                style={{ backgroundColor: COLORS.coral }}
+                disabled={deleteDeviceMutation.isPending}
+                onPress={() => void confirmDelete()}
+              >
+                <Text className="text-[15px] font-extrabold text-white">
+                  {deleteDeviceMutation.isPending ? "Removing..." : "Remove"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {hasSelection && !confirmingDelete ? (
           <View className="h-[88px] flex-row items-center border-t border-[#F1F1F1] bg-white px-4">
             <DeviceManagementAction
               Icon={ArrowUp}
@@ -209,7 +229,7 @@ export default function DeviceManagementScreen() {
               Icon={Trash2}
               label="Remove"
               disabled={deleteDeviceMutation.isPending}
-              onPress={confirmDelete}
+              onPress={handleDeletePress}
             />
           </View>
         ) : null}

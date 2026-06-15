@@ -52,4 +52,8 @@ export const sceneService = {
     );
     return response.data.data;
   },
+
+  async deleteScene(sceneId: string): Promise<void> {
+    await apiClient.delete(`${ENDPOINTS.SCENES}/${sceneId}`);
+  },
 };

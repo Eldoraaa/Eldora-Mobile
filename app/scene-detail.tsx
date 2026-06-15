@@ -18,12 +18,13 @@ import {
   MousePointerClick,
   Plus,
   Router,
+  Trash2,
   WifiOff,
 } from "lucide-react-native";
 import { ScreenHeader } from "@/components/navigation/ScreenHeader";
 import { COLORS } from "@/constants/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
-import { useSceneQuery, useUpdateSceneMutation } from "@/hooks/useSceneQueries";
+import { useDeleteSceneMutation, useSceneQuery, useUpdateSceneMutation } from "@/hooks/useSceneQueries";
 import {
   SceneActions,
   SceneActionType,
@@ -252,8 +253,10 @@ export default function SceneDetailScreen() {
   const goBack = useBackNavigation("/scene");
   const sceneQuery = useSceneQuery(sceneId);
   const updateSceneMutation = useUpdateSceneMutation(sceneId);
+  const deleteSceneMutation = useDeleteSceneMutation();
   const [conditionSheetOpen, setConditionSheetOpen] = useState(false);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const scene = sceneQuery.data;
   const triggerConfig = scene?.triggerConfig as SceneTriggerConfig | null;
@@ -319,10 +322,36 @@ export default function SceneDetailScreen() {
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!sceneId) return;
+    setConfirmDelete(false);
+    try {
+      await deleteSceneMutation.mutateAsync(sceneId);
+      Toast.show({ type: "success", text1: "Scene deleted" });
+      goBack();
+    } catch {
+      Toast.show({ type: "error", text1: "Could not delete scene", text2: "Please try again." });
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="mx-auto w-full max-w-[430px] flex-1 bg-white">
-        <ScreenHeader title="Scene Detail" onBack={goBack} />
+        <ScreenHeader
+          title="Scene Detail"
+          onBack={goBack}
+          right={
+            scene ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Delete scene"
+                onPress={() => setConfirmDelete(true)}
+              >
+                <Trash2 size={22} color={COLORS.coral} strokeWidth={2.2} />
+              </Pressable>
+            ) : null
+          }
+        />
         <ScrollView
           className="flex-1 bg-white"
           contentContainerClassName="px-6 pb-12 pt-8"
@@ -416,6 +445,41 @@ export default function SceneDetailScreen() {
           )}
         </ScrollView>
       </View>
+
+      <Modal transparent visible={confirmDelete} animationType="fade" onRequestClose={() => setConfirmDelete(false)}>
+        <Pressable className="flex-1 justify-end bg-black/45" onPress={() => setConfirmDelete(false)}>
+          <Pressable
+            className="rounded-t-[28px] bg-white px-8 pb-10 pt-8"
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text className="text-[20px] font-extrabold" style={{ color: COLORS.text }}>
+              Delete this scene?
+            </Text>
+            <Text className="mt-2 text-[14px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+              This action cannot be undone. The scene and all its rules will be permanently removed.
+            </Text>
+            <View className="mt-6 flex-row gap-3">
+              <Pressable
+                className="h-[52px] flex-1 items-center justify-center rounded-[14px] border"
+                style={{ borderColor: COLORS.line }}
+                onPress={() => setConfirmDelete(false)}
+              >
+                <Text className="text-[15px] font-extrabold" style={{ color: COLORS.muted }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                className="h-[52px] flex-1 items-center justify-center rounded-[14px]"
+                style={{ backgroundColor: COLORS.coral }}
+                disabled={deleteSceneMutation.isPending}
+                onPress={() => void handleDeleteConfirm()}
+              >
+                <Text className="text-[15px] font-extrabold text-white">
+                  {deleteSceneMutation.isPending ? "Deleting..." : "Delete"}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <RuleBottomSheet
         visible={conditionSheetOpen}

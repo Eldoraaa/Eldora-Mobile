@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -136,7 +135,7 @@ export default function VoiceSettingsScreen() {
       onSuccess: (result) => {
         if (result.audioUrl) {
           void Linking.openURL(result.audioUrl).catch(() => {
-            Alert.alert("Could not open audio", "Try opening it manually in your browser.");
+            Toast.show({ type: "error", text1: "Could not open audio", text2: "Try again in a moment." });
           });
         } else {
           Toast.show({ type: "info", text1: "Voice test sent", text2: "DoraBot will speak in the elder's room." });

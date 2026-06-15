@@ -6,4 +6,5 @@ export const sceneApi = {
   createScene: sceneService.createScene,
   executeScene: sceneService.executeScene,
   updateScene: sceneService.updateScene,
+  deleteScene: sceneService.deleteScene,
 };

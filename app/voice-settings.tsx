@@ -24,11 +24,14 @@ import {
 import type { VoiceConfigInput } from "@/api/devicesApi";
 
 const TTS_VOICE_OPTIONS = [
-  { value: "en-US-JennyNeural", label: "Jenny", description: "Warm and friendly (US)" },
-  { value: "en-US-GuyNeural", label: "Guy", description: "Clear and calm (US)" },
-  { value: "en-GB-SoniaNeural", label: "Sonia", description: "Gentle and clear (UK)" },
-  { value: "en-AU-NatashaNeural", label: "Natasha", description: "Friendly (Australian)" },
-] as const;
+  { group: "Female", value: "en-US-JennyNeural", label: "Jenny", description: "Warm and friendly (US)" },
+  { group: "Female", value: "en-US-AriaNeural", label: "Aria", description: "Natural and expressive (US)" },
+  { group: "Female", value: "en-GB-SoniaNeural", label: "Sonia", description: "Gentle and clear (UK)" },
+  { group: "Female", value: "en-AU-NatashaNeural", label: "Natasha", description: "Calm and steady (Australian)" },
+  { group: "Male", value: "en-US-GuyNeural", label: "Guy", description: "Clear and calm (US)" },
+  { group: "Male", value: "en-GB-RyanNeural", label: "Ryan", description: "Warm and reassuring (UK)" },
+  { group: "Male", value: "en-AU-WilliamNeural", label: "William", description: "Steady and relaxed (Australian)" },
+];
 
 const TTS_RATE_OPTIONS = [
   { value: "-20%", label: "Slow", description: "Clearer for hard-of-hearing elders" },
@@ -201,14 +204,24 @@ export default function VoiceSettingsScreen() {
 
             {/* TTS Voice */}
             <SectionLabel>Voice Character</SectionLabel>
-            {TTS_VOICE_OPTIONS.map((opt) => (
-              <SelectRow
-                key={opt.value}
-                label={opt.label}
-                description={opt.description}
-                selected={cfg?.ttsVoice === opt.value}
-                onPress={() => handleVoice(opt.value)}
-              />
+            {(["Female", "Male"] as const).map((group) => (
+              <View key={group}>
+                <Text
+                  className="px-8 pb-2 pt-4 text-[12px] font-extrabold uppercase tracking-widest"
+                  style={{ color: COLORS.coral }}
+                >
+                  {group}
+                </Text>
+                {TTS_VOICE_OPTIONS.filter((o) => o.group === group).map((opt) => (
+                  <SelectRow
+                    key={opt.value}
+                    label={opt.label}
+                    description={opt.description}
+                    selected={cfg?.ttsVoice === opt.value}
+                    onPress={() => handleVoice(opt.value)}
+                  />
+                ))}
+              </View>
             ))}
             <Divider />
 

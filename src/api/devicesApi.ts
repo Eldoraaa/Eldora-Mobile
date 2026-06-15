@@ -84,6 +84,9 @@ export const devicesApi = {
   discoverLocalHubs(): Promise<LocalProvisioningInfo[]> {
     return deviceService.discoverLocalHubs();
   },
+  async deleteDevice(deviceId: string): Promise<void> {
+    await apiClient.delete(`/devices/${deviceId}`);
+  },
   async getDeviceVoiceConfig(deviceId: string): Promise<DeviceVoiceConfig> {
     const res = await apiClient.get<{ data: DeviceVoiceConfig }>(`/devices/${deviceId}/voice-config`);
     return res.data.data;

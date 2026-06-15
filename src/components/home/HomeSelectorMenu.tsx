@@ -1,20 +1,27 @@
 import React from "react";
-import { Modal, Pressable, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
-import { Check, SlidersHorizontal } from "lucide-react-native";
+import { Check, Plus, SlidersHorizontal } from "lucide-react-native";
 import { COLORS } from "@/constants/theme";
+
+type Home = {
+  id: string;
+  name: string;
+};
 
 type HomeSelectorMenuProps = {
   visible: boolean;
-  selectedHomeName?: string;
-  hasSelectedHome?: boolean;
+  homes: Home[];
+  selectedHomeId?: string;
+  onSelectHome: (home: Home) => void;
   onClose: () => void;
 };
 
 export function HomeSelectorMenu({
   visible,
-  selectedHomeName,
-  hasSelectedHome = Boolean(selectedHomeName),
+  homes,
+  selectedHomeId,
+  onSelectHome,
   onClose,
 }: HomeSelectorMenuProps) {
   return (
@@ -33,27 +40,59 @@ export function HomeSelectorMenu({
             accessibilityLabel="Home selector"
             onPress={(event) => event.stopPropagation()}
           >
-            {hasSelectedHome ? (
-              <>
-                <TouchableOpacity
-                  className="h-14 flex-row items-center"
-                  activeOpacity={0.78}
-                  accessibilityRole="menuitem"
-                  accessibilityLabel={`${selectedHomeName ?? "Selected home"}, selected`}
-                  accessibilityState={{ selected: true }}
-                  onPress={onClose}
-                >
-                  <Check size={20} color={COLORS.coral} />
-                  <Text
-                    className="ml-5 text-[17px] font-normal"
-                    style={{ color: COLORS.text }}
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {homes.map((home) => {
+                const selected = home.id === selectedHomeId;
+                return (
+                  <TouchableOpacity
+                    key={home.id}
+                    className="h-14 flex-row items-center"
+                    activeOpacity={0.78}
+                    accessibilityRole="menuitem"
+                    accessibilityLabel={home.name}
+                    accessibilityState={{ selected }}
+                    onPress={() => {
+                      onSelectHome(home);
+                      onClose();
+                    }}
                   >
-                    {selectedHomeName}
-                  </Text>
-                </TouchableOpacity>
-                <View className="h-px bg-[#F1F1F1]" />
-              </>
-            ) : null}
+                    {selected ? (
+                      <Check size={20} color={COLORS.coral} />
+                    ) : (
+                      <View style={{ width: 20 }} />
+                    )}
+                    <Text
+                      className="ml-5 text-[17px]"
+                      style={{
+                        color: selected ? COLORS.coral : COLORS.text,
+                        fontWeight: selected ? "800" : "400",
+                      }}
+                    >
+                      {home.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <View className="h-px" style={{ backgroundColor: COLORS.line }} />
+
+            <TouchableOpacity
+              className="h-14 flex-row items-center"
+              activeOpacity={0.78}
+              accessibilityRole="menuitem"
+              accessibilityLabel="Add a new home"
+              onPress={() => {
+                onClose();
+                router.push("/home-management" as never);
+              }}
+            >
+              <Plus size={20} color={COLORS.muted} />
+              <Text className="ml-5 text-[17px] font-normal" style={{ color: COLORS.muted }}>
+                Add a home
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               className="h-14 flex-row items-center"
               activeOpacity={0.78}
@@ -65,10 +104,7 @@ export function HomeSelectorMenu({
               }}
             >
               <SlidersHorizontal size={20} color={COLORS.text} />
-              <Text
-                className="ml-5 text-[17px] font-normal"
-                style={{ color: COLORS.text }}
-              >
+              <Text className="ml-5 text-[17px] font-normal" style={{ color: COLORS.text }}>
                 Home Management
               </Text>
             </TouchableOpacity>

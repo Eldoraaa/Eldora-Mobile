@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -14,10 +15,12 @@ import {
   Eye,
   EyeOff,
   Router as RouterIcon,
+  Trash2,
 } from "lucide-react-native";
 import { DeviceManagementAction } from "@/components/devices/DeviceManagementAction";
 import { DeviceManagementRow } from "@/components/devices/DeviceManagementRow";
 import {
+  useDeleteDeviceMutation,
   useDevicesScreenQuery,
   useUpdateDeviceManagementMutation,
 } from "@/hooks/useDeviceQueries";
@@ -29,6 +32,7 @@ export default function DeviceManagementScreen() {
   const goBack = useBackNavigation("/home");
   const devicesScreenQuery = useDevicesScreenQuery();
   const updateDeviceManagementMutation = useUpdateDeviceManagementMutation();
+  const deleteDeviceMutation = useDeleteDeviceMutation();
   const fetchedDevices = useMemo(
     () => devicesScreenQuery.data?.devices ?? [],
     [devicesScreenQuery.data?.devices]
@@ -37,6 +41,28 @@ export default function DeviceManagementScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const hasSelection = selectedIds.size > 0;
+
+  const confirmDelete = () => {
+    const count = selectedIds.size;
+    Alert.alert(
+      "Remove device?",
+      `This will permanently remove ${count === 1 ? "this device" : `${count} devices`} and all related data. This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            for (const id of selectedIds) {
+              await deleteDeviceMutation.mutateAsync(id);
+            }
+            setSelectedIds(new Set());
+            Toast.show({ type: "success", text1: "Device removed" });
+          },
+        },
+      ]
+    );
+  };
   const selectedHidden = devices.some(
     (device) => selectedIds.has(device.id) && hiddenIds.has(device.id)
   );
@@ -178,6 +204,12 @@ export default function DeviceManagementScreen() {
               label={selectedHidden ? "Show" : "Hide"}
               disabled={false}
               onPress={toggleHidden}
+            />
+            <DeviceManagementAction
+              Icon={Trash2}
+              label="Remove"
+              disabled={deleteDeviceMutation.isPending}
+              onPress={confirmDelete}
             />
           </View>
         ) : null}

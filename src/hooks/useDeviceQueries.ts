@@ -197,6 +197,16 @@ export function useDiscoverLocalHubsMutation() {
   });
 }
 
+export function useDeleteDeviceMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => devicesApi.deleteDevice(deviceId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.devices.screen });
+    },
+  });
+}
+
 export function useDeviceVoiceConfigQuery(deviceId: string) {
   return useQuery({
     queryKey: queryKeys.devices.voiceConfig(deviceId),

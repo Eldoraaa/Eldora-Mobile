@@ -166,6 +166,8 @@ export default function SceneBuilderScreen() {
   const [selectedRuleLabel, setSelectedRuleLabel] = useState<string | null>(null);
   const [selectedActionTypes, setSelectedActionTypes] = useState<SceneActionType[]>([]);
   const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [scheduleFrequency, setScheduleFrequency] = useState<"daily" | "weekly">("daily");
+  const [scheduleWeekday, setScheduleWeekday] = useState(1);
   const [actionTitle, setActionTitle] = useState("");
   const [actionBody, setActionBody] = useState("");
   const [dorabotMessage, setDoraBotMessage] = useState("");
@@ -177,6 +179,8 @@ export default function SceneBuilderScreen() {
     const defaultRule = RULE_OPTIONS.find((rule) => rule.kind === template?.triggerConfig.condition?.kind) ?? RULE_OPTIONS[0];
     setSelectedRuleLabel(defaultRule.label);
     setScheduleTime(template?.triggerConfig.condition?.schedule?.time ?? "09:00");
+    setScheduleFrequency(template?.triggerConfig.condition?.schedule?.frequency ?? "daily");
+    setScheduleWeekday(template?.triggerConfig.condition?.schedule?.weekday ?? 1);
     setSelectedActionTypes((template?.actions.steps ?? []).map((action) => action.type === "dorabot_voice_check_in" ? "speak_on_dorabot" : action.type));
     const firstNotification = template?.actions.steps.find((action) => action.type === "send_push_alert" || action.type === "send_push_alert_if_no_response");
     const firstDoraBotMessage = template?.actions.steps.find((action) => action.type === "speak_on_dorabot" || action.type === "dorabot_voice_check_in");
@@ -268,7 +272,13 @@ export default function SceneBuilderScreen() {
         deviceType: selectedRule.deviceType,
         ...(selectedRule.kind === "device_offline" ? { durationMinutes: 10 } : {}),
         ...(selectedRule.kind === "schedule"
-          ? { schedule: { frequency: "daily" as const, time: scheduleTime } }
+          ? {
+              schedule: {
+                frequency: scheduleFrequency,
+                time: scheduleTime,
+                ...(scheduleFrequency === "weekly" ? { weekday: scheduleWeekday } : {}),
+              },
+            }
           : {}),
       },
       ...(hasDeviceBindings ? { deviceBindings: cleanedDeviceBindings } : {}),
@@ -542,51 +552,108 @@ export default function SceneBuilderScreen() {
                 <Pencil size={24} color={COLORS.disabled} />
               </View>
 
-              <View className="mt-12">
-                <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
-                  If
-                </Text>
-                <Text className="mt-2 text-[16px] font-semibold leading-6" style={{ color: COLORS.text }}>
-                  Choose what should trigger this scene.
-                </Text>
-                <View className="mt-5 flex-row flex-wrap gap-2">
-                  {RULE_OPTIONS.map((rule) => {
-                    const active = selectedRule.label === rule.label;
-                    return (
-                      <TouchableOpacity
-                        key={rule.label}
-                        className="rounded-full px-4 py-3"
-                        style={{ backgroundColor: active ? COLORS.coralSoft : COLORS.surfaceMuted }}
-                        activeOpacity={0.78}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        onPress={() => setSelectedRuleLabel(rule.label)}
-                      >
-                        <Text className="text-[13px] font-extrabold" style={{ color: active ? COLORS.coral : COLORS.text }}>
-                          {rule.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                {selectedRule.kind === "schedule" ? (
-                  <View className="mt-5">
-                    <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                      Schedule time
-                    </Text>
-                    <TextInput
-                      value={scheduleTime}
-                      onChangeText={setScheduleTime}
-                      placeholder="09:00"
-                      placeholderTextColor={COLORS.disabled}
-                      className="h-[50px] rounded-[12px] border px-4 text-[16px] font-semibold"
-                      style={{ borderColor: COLORS.line, color: COLORS.text }}
-                      accessibilityLabel="Schedule time"
-                      returnKeyType="done"
-                    />
+              {template.triggerType !== "tap_to_run" ? (
+                <View className="mt-12">
+                  <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
+                    If
+                  </Text>
+                  <Text className="mt-2 text-[16px] font-semibold leading-6" style={{ color: COLORS.text }}>
+                    Choose what should trigger this scene.
+                  </Text>
+                  <View className="mt-5 flex-row flex-wrap gap-2">
+                    {RULE_OPTIONS.map((rule) => {
+                      const active = selectedRule.label === rule.label;
+                      return (
+                        <TouchableOpacity
+                          key={rule.label}
+                          className="rounded-full px-4 py-3"
+                          style={{ backgroundColor: active ? COLORS.coralSoft : COLORS.surfaceMuted }}
+                          activeOpacity={0.78}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                          onPress={() => setSelectedRuleLabel(rule.label)}
+                        >
+                          <Text className="text-[13px] font-extrabold" style={{ color: active ? COLORS.coral : COLORS.text }}>
+                            {rule.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
-                ) : null}
-              </View>
+                  {selectedRule.kind === "schedule" ? (
+                    <View className="mt-5 gap-4">
+                      <View>
+                        <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                          Frequency
+                        </Text>
+                        <View className="flex-row gap-2">
+                          {(["daily", "weekly"] as const).map((freq) => (
+                            <TouchableOpacity
+                              key={freq}
+                              className="rounded-full px-5 py-3"
+                              style={{ backgroundColor: scheduleFrequency === freq ? COLORS.coralSoft : COLORS.surfaceMuted }}
+                              activeOpacity={0.78}
+                              onPress={() => setScheduleFrequency(freq)}
+                            >
+                              <Text className="text-[13px] font-extrabold capitalize" style={{ color: scheduleFrequency === freq ? COLORS.coral : COLORS.text }}>
+                                {freq}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                      {scheduleFrequency === "weekly" ? (
+                        <View>
+                          <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                            Day
+                          </Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            <View className="flex-row gap-2">
+                              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
+                                <TouchableOpacity
+                                  key={day}
+                                  className="h-[42px] w-[42px] items-center justify-center rounded-full"
+                                  style={{ backgroundColor: scheduleWeekday === index ? COLORS.coral : COLORS.surfaceMuted }}
+                                  activeOpacity={0.78}
+                                  onPress={() => setScheduleWeekday(index)}
+                                >
+                                  <Text className="text-[12px] font-extrabold" style={{ color: scheduleWeekday === index ? "white" : COLORS.text }}>
+                                    {day}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </ScrollView>
+                        </View>
+                      ) : null}
+                      <View>
+                        <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                          Time (HH:MM)
+                        </Text>
+                        <TextInput
+                          value={scheduleTime}
+                          onChangeText={setScheduleTime}
+                          placeholder="09:00"
+                          placeholderTextColor={COLORS.disabled}
+                          className="h-[50px] rounded-[12px] border px-4 text-[16px] font-semibold"
+                          style={{ borderColor: COLORS.line, color: COLORS.text }}
+                          accessibilityLabel="Schedule time"
+                          returnKeyType="done"
+                        />
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              ) : (
+                <View className="mt-12 rounded-[18px] px-4 py-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                  <Text className="text-[15px] font-extrabold" style={{ color: COLORS.text }}>
+                    Triggered by tap
+                  </Text>
+                  <Text className="mt-1 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                    This scene runs instantly when you press Run from the scene list.
+                  </Text>
+                </View>
+              )}
 
               <View className="mt-12">
                 <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>

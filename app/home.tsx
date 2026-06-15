@@ -98,10 +98,11 @@ export default function HomeScreen() {
   const provisionLocalWifiMutation = useProvisionLocalWifiMutation();
   const scanLocalWifiNetworksMutation = useScanLocalWifiNetworksMutation();
   const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
+  const [selectedHomeId, setSelectedHomeId] = useState<string | null>(null);
   const homesQuery = useHomesQuery();
-  const selectedHome = homesQuery.data?.[0];
+  const homes = homesQuery.data ?? [];
+  const selectedHome = homes.find((h) => h.id === selectedHomeId) ?? homes[0];
   const selectedHomeName = selectedHome?.name ?? "...";
-  const hasSelectedHome = Boolean(selectedHome);
   const roomCategoriesQuery = useRoomCategoriesQuery(selectedHome?.id);
 
   const activeLocalHub = localHub;
@@ -620,8 +621,9 @@ export default function HomeScreen() {
 
             <HomeSelectorMenu
               visible={showHomeMenu}
-              selectedHomeName={selectedHomeName}
-              hasSelectedHome={hasSelectedHome}
+              homes={homes}
+              selectedHomeId={selectedHome?.id}
+              onSelectHome={(home) => setSelectedHomeId(home.id)}
               onClose={() => setShowHomeMenu(false)}
             />
 
@@ -708,7 +710,7 @@ export default function HomeScreen() {
                   );
                 })}
               </ScrollView>
-              {hasSelectedHome ? (
+              {Boolean(selectedHome) ? (
                 <TouchableOpacity
                   accessibilityRole="button"
                   accessibilityLabel="Open home options"
@@ -724,7 +726,7 @@ export default function HomeScreen() {
               ) : null}
             </View>
 
-            {showMoreMenu && hasSelectedHome ? (
+            {showMoreMenu && Boolean(selectedHome) ? (
               <Modal
                 transparent
                 animationType="fade"

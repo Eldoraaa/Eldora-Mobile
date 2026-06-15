@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -149,14 +149,60 @@ function MiniTrend({ values, color }: { values: number[]; color: string }) {
   );
 }
 
+const RANGE_OPTIONS = [
+  { days: 7, label: "7D" },
+  { days: 14, label: "14D" },
+  { days: 30, label: "30D" },
+  { days: 60, label: "60D" },
+] as const;
+
+type RangeDays = (typeof RANGE_OPTIONS)[number]["days"];
+
+function isoFromDaysAgo(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+const EMOTION_LABELS: Record<string, string> = {
+  distressed: "Distressed",
+  anxious: "Anxious",
+  sad: "Sad",
+  positive: "Positive",
+  neutral: "Neutral",
+};
+
+const EMOTION_COLORS: Record<string, string> = {
+  distressed: COLORS.coral,
+  anxious: COLORS.warning,
+  sad: "#6B9DD4",
+  positive: COLORS.success,
+  neutral: COLORS.muted,
+};
+
+function EmotionBar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <View className="mb-3">
+      <View className="mb-1.5 flex-row items-center justify-between">
+        <Text className="text-[13px] font-extrabold" style={{ color: COLORS.text }}>{label}</Text>
+        <Text className="text-[13px] font-bold" style={{ color: COLORS.muted }}>{count} ({pct}%)</Text>
+      </View>
+      <View className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: COLORS.surfaceMuted }}>
+        <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </View>
+    </View>
+  );
+}
+
 export default function DeviceDetailScreen() {
   const goBack = useBackNavigation("/home");
   const params = useLocalSearchParams<{ id?: string }>();
+  const [selectedDays, setSelectedDays] = useState<RangeDays>(7);
   const devicesQuery = useDevicesScreenQuery();
   const homesQuery = useHomesQuery();
   const selectedHome = homesQuery.data?.[0];
+  const startDateIso = isoFromDaysAgo(selectedDays);
   const safetySummaryQuery = useSafetySummaryQuery(selectedHome?.id);
-  const wellnessSummaryQuery = useWellnessSummaryQuery(selectedHome?.id);
+  const wellnessSummaryQuery = useWellnessSummaryQuery(selectedHome?.id, startDateIso);
   const device = devicesQuery.data?.devices.find((item) => item.id === params.id);
   const shield = device ? isDoraShieldDevice(device) : false;
   const title = device ? (shield ? "DoraShield" : "DoraBot") : "Device";
@@ -262,7 +308,27 @@ export default function DeviceDetailScreen() {
             </View>
           </View>
 
-          <View className="mt-6 rounded-[24px] border bg-white p-5" style={{ borderColor: COLORS.line }}>
+          {/* Date range chips */}
+          <View className="mt-5 flex-row gap-2">
+            {RANGE_OPTIONS.map((opt) => {
+              const active = selectedDays === opt.days;
+              return (
+                <TouchableOpacity
+                  key={opt.days}
+                  className="h-9 flex-1 items-center justify-center rounded-full"
+                  style={{ backgroundColor: active ? COLORS.coral : COLORS.surfaceMuted }}
+                  activeOpacity={0.78}
+                  onPress={() => setSelectedDays(opt.days)}
+                >
+                  <Text className="text-[13px] font-extrabold" style={{ color: active ? "#fff" : COLORS.muted }}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View className="mt-4 rounded-[24px] border bg-white p-5" style={{ borderColor: COLORS.line }}>
             <View className="flex-row items-start justify-between">
               <View className="flex-1 pr-4">
                 <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
@@ -334,7 +400,7 @@ export default function DeviceDetailScreen() {
             <InsightMetric
               label="Wellness"
               value={wellnessSummary?.moodTrend.replace(/_/g, " ") ?? "Stable"}
-              helper={wellnessSummary ? `Distress ${wellnessSummary.distressScore}` : "Home signal"}
+              helper={wellnessSummary ? `Score ${wellnessSummary.distressScore} · ${wellnessSummary.distressLevel}` : "Home signal"}
               progress={wellnessSummary ? Math.max(0, 100 - wellnessSummary.distressScore) : 78}
               color={wellnessAccent}
               Icon={Activity}
@@ -368,6 +434,78 @@ export default function DeviceDetailScreen() {
               </>
             )}
           </View>
+
+          {!shield && wellnessSummary ? (
+            <View className="mt-8 rounded-[24px] border bg-white p-5" style={{ borderColor: COLORS.line }}>
+              <View className="mb-4 flex-row items-center justify-between">
+                <View>
+                  <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                    Voice Emotion
+                  </Text>
+                  <Text className="mt-0.5 text-[18px] font-extrabold" style={{ color: COLORS.text }}>
+                    {wellnessSummary.voiceEmotionSummary.totalInteractions} interaction{wellnessSummary.voiceEmotionSummary.totalInteractions !== 1 ? "s" : ""}
+                  </Text>
+                </View>
+                {wellnessSummary.voiceEmotionSummary.dominantEmotion ? (
+                  <View
+                    className="rounded-full px-3 py-1.5"
+                    style={{ backgroundColor: EMOTION_COLORS[wellnessSummary.voiceEmotionSummary.dominantEmotion] + "22" }}
+                  >
+                    <Text
+                      className="text-[12px] font-extrabold"
+                      style={{ color: EMOTION_COLORS[wellnessSummary.voiceEmotionSummary.dominantEmotion] }}
+                    >
+                      {EMOTION_LABELS[wellnessSummary.voiceEmotionSummary.dominantEmotion]}
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                    <Text className="text-[12px] font-extrabold" style={{ color: COLORS.muted }}>No data</Text>
+                  </View>
+                )}
+              </View>
+
+              {wellnessSummary.voiceEmotionSummary.totalInteractions > 0 ? (
+                <>
+                  {(["distressed", "anxious", "sad", "positive", "neutral"] as const).map((key) => {
+                    const count = wellnessSummary.voiceEmotionSummary.breakdown[key];
+                    if (count === 0) return null;
+                    return (
+                      <EmotionBar
+                        key={key}
+                        label={EMOTION_LABELS[key]}
+                        count={count}
+                        total={wellnessSummary.voiceEmotionSummary.totalInteractions}
+                        color={EMOTION_COLORS[key]}
+                      />
+                    );
+                  })}
+                </>
+              ) : (
+                <Text className="text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                  No voice interactions recorded in this period. DoraBot will start tracking emotions as the elder speaks.
+                </Text>
+              )}
+
+              <View className="mt-3 h-px" style={{ backgroundColor: COLORS.line }} />
+              <Text className="mt-3 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                {wellnessSummary.recommendation}
+              </Text>
+
+              {wellnessSummary.careSignals.length > 0 ? (
+                <View className="mt-3 gap-1.5">
+                  {wellnessSummary.careSignals.map((signal, i) => (
+                    <View key={i} className="flex-row items-start">
+                      <Text style={{ color: COLORS.coral, marginTop: 2 }}>• </Text>
+                      <Text className="flex-1 text-[13px] font-semibold leading-5" style={{ color: COLORS.text }}>
+                        {signal}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
 
           <View className="mt-8">
             <Text

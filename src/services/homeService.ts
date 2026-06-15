@@ -33,10 +33,10 @@ export const homeService = {
     return response.data.data;
   },
 
-  async getWellnessSummary(homeId?: string | null): Promise<WellnessSummary> {
+  async getWellnessSummary(homeId?: string | null, startDate?: string, endDate?: string): Promise<WellnessSummary> {
     const response = await apiClient.get<ApiResponse<WellnessSummary>>(
       ENDPOINTS.WELLNESS_SUMMARY,
-      { params: homeId ? { homeId } : undefined }
+      { params: { ...(homeId ? { homeId } : {}), ...(startDate ? { startDate } : {}), ...(endDate ? { endDate } : {}) } }
     );
     return response.data.data;
   },

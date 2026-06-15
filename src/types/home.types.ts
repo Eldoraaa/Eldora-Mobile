@@ -43,6 +43,17 @@ export interface WellnessSummary {
   careSignals: string[];
   recommendation: string;
   generatedAt: string;
+  voiceEmotionSummary: {
+    totalInteractions: number;
+    dominantEmotion: "distressed" | "anxious" | "sad" | "positive" | null;
+    breakdown: {
+      distressed: number;
+      anxious: number;
+      sad: number;
+      positive: number;
+      neutral: number;
+    };
+  };
 }
 
 export interface SafetySummary {

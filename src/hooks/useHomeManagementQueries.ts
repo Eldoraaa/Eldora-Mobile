@@ -24,10 +24,10 @@ export function useSafetySummaryQuery(homeId?: string | null) {
   });
 }
 
-export function useWellnessSummaryQuery(homeId?: string | null) {
+export function useWellnessSummaryQuery(homeId?: string | null, startDate?: string, endDate?: string) {
   return useQuery({
-    queryKey: [...queryKeys.home.wellnessSummary, homeId ?? "all"],
-    queryFn: () => homeApi.getWellnessSummary(homeId),
+    queryKey: [...queryKeys.home.wellnessSummary, homeId ?? "all", startDate ?? "", endDate ?? ""],
+    queryFn: () => homeApi.getWellnessSummary(homeId, startDate, endDate),
   });
 }
 

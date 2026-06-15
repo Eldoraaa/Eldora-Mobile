@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { devicesApi, DevicesScreenData } from "@/api/devicesApi";
+import { devicesApi, DevicesScreenData, VoiceConfigInput } from "@/api/devicesApi";
 import { queryKeys } from "@/lib/queryClient";
 import {
   EldoraDevice,
@@ -194,5 +194,29 @@ export function useScanLocalWifiNetworksMutation() {
 export function useDiscoverLocalHubsMutation() {
   return useMutation({
     mutationFn: devicesApi.discoverLocalHubs,
+  });
+}
+
+export function useDeviceVoiceConfigQuery(deviceId: string) {
+  return useQuery({
+    queryKey: queryKeys.devices.voiceConfig(deviceId),
+    queryFn: () => devicesApi.getDeviceVoiceConfig(deviceId),
+    enabled: !!deviceId,
+  });
+}
+
+export function useUpdateDeviceVoiceConfigMutation(deviceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: VoiceConfigInput) => devicesApi.updateDeviceVoiceConfig(deviceId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.devices.voiceConfig(deviceId) });
+    },
+  });
+}
+
+export function useDeviceVoiceTestAudioMutation() {
+  return useMutation({
+    mutationFn: (deviceId: string) => devicesApi.getDeviceVoiceTestAudio(deviceId),
   });
 }

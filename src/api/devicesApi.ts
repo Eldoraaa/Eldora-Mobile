@@ -1,4 +1,5 @@
 import { deviceService } from "@/services/deviceService";
+import { apiClient } from "@/services/api";
 import {
   DevicePairingRequest,
   EldoraDevice,
@@ -12,6 +13,22 @@ import {
   WifiConfigPayload,
   WifiNetwork,
 } from "@/types/device.types";
+
+export type DeviceVoiceConfig = {
+  id: string;
+  deviceId: string;
+  enabled: boolean;
+  language: string;
+  ttsVoice: string;
+  ttsRate: string;
+};
+
+export type VoiceConfigInput = {
+  enabled?: boolean;
+  language?: string;
+  ttsVoice?: string;
+  ttsRate?: string;
+};
 
 export type DevicesScreenData = {
   devices: EldoraDevice[];
@@ -66,6 +83,18 @@ export const devicesApi = {
   },
   discoverLocalHubs(): Promise<LocalProvisioningInfo[]> {
     return deviceService.discoverLocalHubs();
+  },
+  async getDeviceVoiceConfig(deviceId: string): Promise<DeviceVoiceConfig> {
+    const res = await apiClient.get<{ data: DeviceVoiceConfig }>(`/devices/${deviceId}/voice-config`);
+    return res.data.data;
+  },
+  async updateDeviceVoiceConfig(deviceId: string, input: VoiceConfigInput): Promise<DeviceVoiceConfig> {
+    const res = await apiClient.put<{ data: DeviceVoiceConfig }>(`/devices/${deviceId}/voice-config`, input);
+    return res.data.data;
+  },
+  async getDeviceVoiceTestAudio(deviceId: string): Promise<{ audioUrl: string | null; text: string }> {
+    const res = await apiClient.get<{ data: { audioUrl: string | null; text: string } }>(`/devices/${deviceId}/voice-test-audio`);
+    return res.data.data;
   },
   async getScreenData(): Promise<DevicesScreenData> {
     const [devices, pairingRequests] = await Promise.all([

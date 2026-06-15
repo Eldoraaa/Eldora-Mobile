@@ -21,4 +21,5 @@ export const ENDPOINTS = {
   NOTIFICATIONS: "/notifications",
   NOTIFICATION_PREFERENCES: "/notifications/preferences",
   SCENES: "/scenes",
+  VOICE_TEST_SPEAK: "/voice/test-speak",
 } as const;

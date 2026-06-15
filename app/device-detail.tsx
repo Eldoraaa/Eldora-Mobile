@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Signal,
+  Volume2,
   Wifi,
 } from "lucide-react-native";
 import { ScreenHeader } from "@/components/navigation/ScreenHeader";
@@ -377,6 +378,12 @@ export default function DeviceDetailScreen() {
             </Text>
             {!shield ? (
               <>
+                <ActionRow
+                  title="Voice Settings"
+                  description="Change voice character, speed, and language for this DoraBot."
+                  Icon={Volume2}
+                  onPress={() => router.push(`/voice-settings?deviceId=${device.id}` as never)}
+                />
                 <ActionRow
                   title="Configure Wi-Fi"
                   description="Review pairing steps before changing the DoraBot network."

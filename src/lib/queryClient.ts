@@ -17,6 +17,7 @@ export const queryKeys = {
     screen: ["devices", "screen"] as const,
     roomCategories: (homeId?: string | null) =>
       ["devices", "room-categories", homeId ?? "default"] as const,
+    voiceConfig: (deviceId: string) => ["devices", "voice-config", deviceId] as const,
   },
   notifications: {
     detail: (id?: string | null) => ["notifications", "detail", id ?? "default"] as const,

@@ -274,18 +274,20 @@ export default function HomeSettingsScreen() {
               ))}
             </View>
 
-            <Pressable
-              className="mt-5 px-8 py-5"
-              accessibilityRole="button"
-              onPress={() => setShowShareModal(true)}
-            >
-              <Text
-                className="text-[16px] font-extrabold leading-6"
-                style={{ color: COLORS.coral }}
+            {currentMember?.role !== "Common Member" ? (
+              <Pressable
+                className="mt-5 px-8 py-5"
+                accessibilityRole="button"
+                onPress={() => setShowShareModal(true)}
               >
-                Add Member
-              </Text>
-            </Pressable>
+                <Text
+                  className="text-[16px] font-extrabold leading-6"
+                  style={{ color: COLORS.coral }}
+                >
+                  Add Member
+                </Text>
+              </Pressable>
+            ) : null}
 
             <Pressable
               className="items-center px-8 py-5"

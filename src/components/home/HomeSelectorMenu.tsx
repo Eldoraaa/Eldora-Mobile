@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
-import { Check, Plus, SlidersHorizontal } from "lucide-react-native";
+import { Check, SlidersHorizontal } from "lucide-react-native";
 import { COLORS } from "@/constants/theme";
 
 type Home = {
@@ -76,22 +76,6 @@ export function HomeSelectorMenu({
             </ScrollView>
 
             <View className="h-px" style={{ backgroundColor: COLORS.line }} />
-
-            <TouchableOpacity
-              className="h-14 flex-row items-center"
-              activeOpacity={0.78}
-              accessibilityRole="menuitem"
-              accessibilityLabel="Add a new home"
-              onPress={() => {
-                onClose();
-                router.push("/home-management" as never);
-              }}
-            >
-              <Plus size={20} color={COLORS.muted} />
-              <Text className="ml-5 text-[17px] font-normal" style={{ color: COLORS.muted }}>
-                Add a home
-              </Text>
-            </TouchableOpacity>
 
             <TouchableOpacity
               className="h-14 flex-row items-center"

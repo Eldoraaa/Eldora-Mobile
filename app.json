@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.eldora.app",
+      "bundleIdentifier": "my.id.eldora.eldora",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
@@ -36,7 +36,7 @@
         "foregroundImage": "./assets/images/eldora_logo.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.eldora.app",
+      "package": "my.id.eldora.eldora",
       "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false
     },

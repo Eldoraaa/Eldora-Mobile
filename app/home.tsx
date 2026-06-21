@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { router } from "expo-router";
+import * as Network from "expo-network";
 import {
   ChevronDown,
   ListChecks,
@@ -47,7 +48,7 @@ import {
   useScanLocalWifiNetworksMutation,
   useSyncDevicesToHomeSummary,
 } from "@/hooks/useDeviceQueries";
-import { useHomesQuery } from "@/hooks/useHomeManagementQueries";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
 import {
   DevicePairingRequest,
   EldoraDevice,
@@ -83,6 +84,7 @@ export default function HomeScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSendingWifi, setIsSendingWifi] = useState(false);
+  const [pendingWifiHub, setPendingWifiHub] = useState<LocalProvisioningInfo | null>(null);
   const [showHomeMenu, setShowHomeMenu] = useState(false);
   const [showDeviceMenu, setShowDeviceMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -90,7 +92,14 @@ export default function HomeScreen() {
   const discoveryRunningRef = useRef(false);
   const autoDiscoveryAttemptedRef = useRef(false);
   const completedHubKeysRef = useRef<Set<string>>(new Set());
-  const devicesScreenQuery = useDevicesScreenQuery();
+  const {
+    homes,
+    selectedHome,
+    selectedHomeId,
+    selectedHomeName,
+    setSelectedHomeId,
+  } = useSelectedHome();
+  const devicesScreenQuery = useDevicesScreenQuery(selectedHomeId);
   const pairLocalDeviceMutation = usePairLocalDeviceMutation();
   const approvePairingRequestMutation = useApprovePairingRequestMutation();
   const rejectPairingRequestMutation = useRejectPairingRequestMutation();
@@ -98,15 +107,11 @@ export default function HomeScreen() {
   const provisionLocalWifiMutation = useProvisionLocalWifiMutation();
   const scanLocalWifiNetworksMutation = useScanLocalWifiNetworksMutation();
   const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
-  const [selectedHomeId, setSelectedHomeId] = useState<string | null>(null);
-  const homesQuery = useHomesQuery();
-  const homes = homesQuery.data ?? [];
-  const selectedHome = homes.find((h) => h.id === selectedHomeId) ?? homes[0];
-  const selectedHomeName = selectedHome?.name ?? "...";
-  const roomCategoriesQuery = useRoomCategoriesQuery(selectedHome?.id);
+  const roomCategoriesQuery = useRoomCategoriesQuery(selectedHomeId);
 
   const activeLocalHub = localHub;
-  const devices = devicesScreenQuery.data?.devices ?? [];
+  const allDevices = devicesScreenQuery.data?.devices ?? [];
+  const devices = allDevices.filter((device) => !device.isHidden);
   const pairingRequests = devicesScreenQuery.data?.pairingRequests ?? [];
   const isLoading = devicesScreenQuery.isPending && !devicesScreenQuery.data;
   const managedRoomCategories = (roomCategoriesQuery.data ?? []).filter(
@@ -195,6 +200,16 @@ export default function HomeScreen() {
     hub: LocalProvisioningInfo,
     silent: boolean = false
   ) => {
+    if (isAlreadyPairedHub(hub, allDevices)) {
+      setLocalHub(hub);
+      setPendingWifiHub(null);
+      setDiscoveredHubs((current) =>
+        current.filter((item) => item.deviceKey !== hub.deviceKey)
+      );
+      await refetchDeviceData();
+      return;
+    }
+
     if (
       silent &&
       completedHubKeysRef.current.has(hub.deviceKey)
@@ -212,6 +227,7 @@ export default function HomeScreen() {
         localIp: hub.ipAddress,
         elderName: "Eldora User",
         deviceName: "DoraBot",
+        homeId: selectedHomeId,
         batteryLevel: hub.batteryLevel ?? undefined,
         isCharging: hub.isCharging,
         wifiSsid: hub.wifiSsid ?? undefined,
@@ -231,6 +247,7 @@ export default function HomeScreen() {
         }
       } else {
         completedHubKeysRef.current.add(hub.deviceKey);
+        setPendingWifiHub(null);
 
         if (!silent) {
           Toast.show({
@@ -275,24 +292,31 @@ export default function HomeScreen() {
 
     try {
       const hubs = await discoverLocalHubsMutation.mutateAsync();
-      const unpairedHubs = hubs.filter((hub) => !isAlreadyPairedHub(hub, devices));
+      const pairedHub = hubs.find((hub) => isAlreadyPairedHub(hub, allDevices));
+      const unpairedHubs = hubs.filter((hub) => !isAlreadyPairedHub(hub, allDevices));
       setDiscoveredHubs(unpairedHubs);
+      setLocalHub(pairedHub ?? unpairedHubs[0] ?? null);
       setDiscoveryError(null);
 
       if (unpairedHubs.length === 0) {
-        setDiscoveryError(hubs.length > 0 ? "No new DoraBot found." : "No response from the DoraBot setup address.");
+        setDiscoveryError(hubs.length > 0 ? null : "No response from the DoraBot setup address.");
         if (!silent) {
           Toast.show({
-            type: "error",
-            text1: hubs.length > 0 ? "No new DoraBot found" : "No DoraBot found",
-            text2: hubs.length > 0 ? "Connected devices are hidden from search results." : "Make sure this phone is on the same WiFi as DoraBot.",
+            type: hubs.length > 0 ? "success" : "error",
+            text1: hubs.length > 0 ? "DoraBot already connected" : "No DoraBot found",
+            text2: hubs.length > 0 ? "Refresh devices if it is not visible below." : "Make sure this phone is on the same WiFi as DoraBot.",
           });
+        }
+        if (hubs.length > 0) {
+          setPendingWifiHub(null);
+          await refetchDeviceData();
         }
         return;
       }
 
-      const firstHub = unpairedHubs[0];
-      setLocalHub(firstHub);
+      const firstHub = pendingWifiHub
+        ? unpairedHubs.find((hub) => hub.deviceKey === pendingWifiHub.deviceKey) ?? unpairedHubs[0]
+        : unpairedHubs[0];
 
       if (!silent) {
         Toast.show({
@@ -341,13 +365,23 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active" && devices.length === 0) {
+      if (state === "active" && (devices.length === 0 || pendingWifiHub)) {
         void discoverLocalHubs(true);
       }
     });
 
     return () => subscription.remove();
-  }, [devices.length]);
+  }, [devices.length, pendingWifiHub]);
+
+  useEffect(() => {
+    const subscription = Network.addNetworkStateListener((state) => {
+      if (state.type === Network.NetworkStateType.WIFI && pendingWifiHub) {
+        void discoverLocalHubs(true);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [pendingWifiHub]);
 
   useEffect(() => {
     if (!activeLocalHub) {
@@ -411,6 +445,10 @@ export default function HomeScreen() {
             ? wifiTarget.hub.ipAddress
             : wifiTarget.device.localIp ?? localHub?.ipAddress;
         await provisionLocalWifiMutation.mutateAsync({ payload, ipAddress });
+      }
+
+      if (wifiTarget.kind === "local") {
+        setPendingWifiHub(wifiTarget.hub);
       }
 
       closeWifiModal();
@@ -532,6 +570,7 @@ export default function HomeScreen() {
   const dorashieldLastSeen = dorashieldDevice?.lastSeen
     ? formatRelativeTime(dorashieldDevice.lastSeen)
     : "Not paired yet";
+  const hasHiddenDevices = allDevices.length > devices.length;
   const displayDevices = devices.filter((device) => {
     if (selectedRoomSlug === "all") return true;
     const selectedRoom = managedRoomCategories.find(
@@ -906,10 +945,10 @@ export default function HomeScreen() {
                 <View className="items-center px-8 py-14">
                   <RouterIcon size={52} color="#8E97A3" strokeWidth={1.8} />
                   <Text className="mt-6 text-center text-[18px] font-extrabold leading-6 text-[#5F6B7A]">
-                    No devices yet
+                    {hasHiddenDevices ? "No visible devices" : "No devices yet"}
                   </Text>
                   <Text className="mt-3 text-center text-[15px] font-semibold leading-6 text-[#5F6B7A]">
-                    Tap the plus button to pair a device.
+                    {hasHiddenDevices ? "Open Device Management to show hidden devices." : "Tap the plus button to pair a device."}
                   </Text>
                 </View>
               )

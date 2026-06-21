@@ -22,7 +22,8 @@ import { ScreenHeader } from "@/components/navigation/ScreenHeader";
 import { COLORS } from "@/constants/theme";
 import { useDevicesScreenQuery } from "@/hooks/useDeviceQueries";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
-import { useHomesQuery, useSafetySummaryQuery, useWellnessSummaryQuery } from "@/hooks/useHomeManagementQueries";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
+import { useSafetySummaryQuery, useWellnessSummaryQuery } from "@/hooks/useHomeManagementQueries";
 import {
   batteryColor,
   deviceStatusText,
@@ -197,12 +198,11 @@ export default function DeviceDetailScreen() {
   const goBack = useBackNavigation("/home");
   const params = useLocalSearchParams<{ id?: string }>();
   const [selectedDays, setSelectedDays] = useState<RangeDays>(7);
-  const devicesQuery = useDevicesScreenQuery();
-  const homesQuery = useHomesQuery();
-  const selectedHome = homesQuery.data?.[0];
+  const { selectedHomeId } = useSelectedHome();
+  const devicesQuery = useDevicesScreenQuery(selectedHomeId);
   const startDateIso = isoFromDaysAgo(selectedDays);
-  const safetySummaryQuery = useSafetySummaryQuery(selectedHome?.id);
-  const wellnessSummaryQuery = useWellnessSummaryQuery(selectedHome?.id, startDateIso);
+  const safetySummaryQuery = useSafetySummaryQuery(selectedHomeId);
+  const wellnessSummaryQuery = useWellnessSummaryQuery(selectedHomeId, startDateIso);
   const device = devicesQuery.data?.devices.find((item) => item.id === params.id);
   const shield = device ? isDoraShieldDevice(device) : false;
   const title = device ? (shield ? "DoraShield" : "DoraBot") : "Device";

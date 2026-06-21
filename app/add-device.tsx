@@ -23,11 +23,17 @@ import { ManualDeviceTile } from "@/components/devices/ManualDeviceTile";
 import { NearbyHubRow } from "@/components/devices/NearbyHubRow";
 import { ScanningRadar } from "@/components/devices/ScanningRadar";
 import {
+  useDevicesScreenQuery,
   useDiscoverLocalHubsMutation,
   usePairLocalDeviceMutation,
 } from "@/hooks/useDeviceQueries";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
 import { LocalProvisioningInfo } from "@/types/device.types";
+
+function isAlreadyPairedHub(hub: LocalProvisioningInfo, devices: { deviceId: string }[]) {
+  return devices.some((device) => device.deviceId === hub.deviceKey);
+}
 
 const MANUAL_DEVICE_TYPES = [
   {
@@ -48,6 +54,8 @@ export default function AddDeviceScreen() {
   const [nearbyHubs, setNearbyHubs] = useState<LocalProvisioningInfo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isWifiOn, setIsWifiOn] = useState<boolean | null>(null);
+  const { selectedHomeId } = useSelectedHome();
+  const devicesQuery = useDevicesScreenQuery(selectedHomeId);
   const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
   const pairLocalDeviceMutation = usePairLocalDeviceMutation();
   const isSearchingRef = useRef(false);
@@ -85,9 +93,12 @@ export default function AddDeviceScreen() {
         return;
       }
 
+      const result = await devicesQuery.refetch();
+      const pairedDevices = result.data?.devices ?? [];
       const hubs = await discoverLocalHubsMutation.mutateAsync();
-      setNearbyHubs(hubs);
-      if (!silent && hubs.length > 0) {
+      const unpairedHubs = hubs.filter((hub) => !isAlreadyPairedHub(hub, pairedDevices));
+      setNearbyHubs(unpairedHubs);
+      if (!silent && unpairedHubs.length > 0) {
         Toast.show({
           type: "success",
           text1: "DoraBot found",
@@ -111,12 +122,19 @@ export default function AddDeviceScreen() {
     };
 
     void scan();
+    const networkSubscription = Network.addNetworkStateListener((state) => {
+      const onWifi = state.type === Network.NetworkStateType.WIFI;
+      setIsWifiOn(onWifi);
+      if (onWifi) void scan();
+      else setNearbyHubs([]);
+    });
     const interval = setInterval(() => {
       void scan();
     }, 20000);
 
     return () => {
       isMounted = false;
+      networkSubscription.remove();
       clearInterval(interval);
     };
   }, []);
@@ -129,6 +147,7 @@ export default function AddDeviceScreen() {
         localIp: hub.ipAddress,
         elderName: "Eldora User",
         deviceName: "DoraBot",
+        homeId: selectedHomeId,
         batteryLevel: hub.batteryLevel ?? undefined,
         isCharging: hub.isCharging,
         wifiSsid: hub.wifiSsid ?? undefined,

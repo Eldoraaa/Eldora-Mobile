@@ -25,7 +25,7 @@ import { findSceneTemplate } from "@/constants/sceneTemplates";
 import { COLORS } from "@/constants/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { useDevicesScreenQuery, useRoomCategoriesQuery } from "@/hooks/useDeviceQueries";
-import { useHomesQuery } from "@/hooks/useHomeManagementQueries";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
 import { useCreateSceneMutation } from "@/hooks/useSceneQueries";
 import { EldoraDevice } from "@/types/device.types";
 import { SceneActionType, SceneConditionKind, SceneDeviceType } from "@/types/scene.types";
@@ -152,11 +152,10 @@ export default function SceneBuilderScreen() {
   const params = useLocalSearchParams<{ template?: string }>();
   const template = findSceneTemplate(params.template);
   const createSceneMutation = useCreateSceneMutation();
-  const homesQuery = useHomesQuery();
-  const selectedHome = homesQuery.data?.[0];
-  const devicesQuery = useDevicesScreenQuery();
+  const { selectedHome, selectedHomeId } = useSelectedHome();
+  const devicesQuery = useDevicesScreenQuery(selectedHomeId);
   const pairedDevices = devicesQuery.data?.devices ?? [];
-  const roomCategoriesQuery = useRoomCategoriesQuery(selectedHome?.id);
+  const roomCategoriesQuery = useRoomCategoriesQuery(selectedHomeId);
   const goBackToList = useBackNavigation("/create-scene");
 
   const [step, setStep] = useState<BuilderStep>("setup");

@@ -116,9 +116,10 @@ export default function AlertDetailScreen() {
   const notification = notificationQuery.data;
   const safetySummaryQuery = useSafetySummaryQuery(notification?.home?.id);
   const notificationType = notification?.type ?? params.type;
-  const markRead = useMarkNotificationReadMutation(notificationType);
-  const respondNotification = useRespondNotificationMutation(notificationType);
-  const resolveNotification = useResolveNotificationMutation(notificationType);
+  const notificationHomeId = notification?.home?.id ?? null;
+  const markRead = useMarkNotificationReadMutation(notificationType, notificationHomeId);
+  const respondNotification = useRespondNotificationMutation(notificationType, notificationHomeId);
+  const resolveNotification = useResolveNotificationMutation(notificationType, notificationHomeId);
   const loading = notificationQuery.isLoading;
   const metadata = notification?.metadata ?? {};
   const eventType = asString(metadata.eventType);

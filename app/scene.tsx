@@ -14,7 +14,7 @@ import {
   useDevicesScreenQuery,
   useRoomCategoriesQuery,
 } from "@/hooks/useDeviceQueries";
-import { useHomesQuery } from "@/hooks/useHomeManagementQueries";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
 import { useExecuteSceneMutation, useScenesQuery } from "@/hooks/useSceneQueries";
 import { SceneMode } from "@/types/scene.types";
 import { groupScenesByDevice, sceneMatchesRoom } from "@/utils/scene.utils";
@@ -24,13 +24,15 @@ export default function SceneScreen() {
   const [showHomeMenu, setShowHomeMenu] = useState(false);
   const [showDeviceMenu, setShowDeviceMenu] = useState(false);
   const [selectedRoomSlug, setSelectedRoomSlug] = useState("all");
-  const [selectedHomeId, setSelectedHomeId] = useState<string | null>(null);
-  const homesQuery = useHomesQuery();
-  const homes = homesQuery.data ?? [];
-  const selectedHome = homes.find((h) => h.id === selectedHomeId) ?? homes[0];
-  const selectedHomeName = selectedHome?.name ?? "...";
-  const devicesQuery = useDevicesScreenQuery();
-  const roomCategoriesQuery = useRoomCategoriesQuery(selectedHome?.id);
+  const {
+    homes,
+    selectedHome,
+    selectedHomeId,
+    selectedHomeName,
+    setSelectedHomeId,
+  } = useSelectedHome();
+  const devicesQuery = useDevicesScreenQuery(selectedHomeId);
+  const roomCategoriesQuery = useRoomCategoriesQuery(selectedHomeId);
   const managedRoomCategories = (roomCategoriesQuery.data ?? []).filter(
     (room) => room.slug !== "all"
   );
@@ -46,7 +48,7 @@ export default function SceneScreen() {
     (room) => room.slug === selectedRoomSlug
   );
   const scenesQuery = useScenesQuery({
-    homeId: selectedHome?.id,
+    homeId: selectedHomeId,
     mode,
   });
   const executeSceneMutation = useExecuteSceneMutation();

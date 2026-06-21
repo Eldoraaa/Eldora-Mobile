@@ -25,12 +25,14 @@ import {
   useUpdateDeviceManagementMutation,
 } from "@/hooks/useDeviceQueries";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
 import { EldoraDevice } from "@/types/device.types";
 import { reorderDevices } from "@/utils/device.utils";
 
 export default function DeviceManagementScreen() {
   const goBack = useBackNavigation("/home");
-  const devicesScreenQuery = useDevicesScreenQuery();
+  const { selectedHomeId } = useSelectedHome();
+  const devicesScreenQuery = useDevicesScreenQuery(selectedHomeId);
   const updateDeviceManagementMutation = useUpdateDeviceManagementMutation();
   const deleteDeviceMutation = useDeleteDeviceMutation();
   const fetchedDevices = useMemo(
@@ -59,6 +61,7 @@ export default function DeviceManagementScreen() {
 
   useEffect(() => {
     setDevices(fetchedDevices);
+    setHiddenIds(new Set(fetchedDevices.filter((device) => device.isHidden).map((device) => device.id)));
   }, [fetchedDevices]);
 
   const toggleSelected = (deviceId: string) => {
@@ -91,6 +94,7 @@ export default function DeviceManagementScreen() {
   const saveManagement = async () => {
     try {
       await updateDeviceManagementMutation.mutateAsync({
+        homeId: selectedHomeId,
         devices: devices.map((device, index) => ({
           id: device.id,
           sortOrder: index,

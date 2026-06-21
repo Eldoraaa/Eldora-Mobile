@@ -36,7 +36,9 @@ export type DevicesScreenData = {
 };
 
 export const devicesApi = {
-  getDevices: deviceService.getDevices,
+  getDevices(homeId?: string | null): Promise<EldoraDevice[]> {
+    return deviceService.getDevices(homeId);
+  },
   getRoomCategories: deviceService.getRoomCategories,
   createRoomCategory(
     payload: CreateRoomCategoryPayload,
@@ -57,7 +59,9 @@ export const devicesApi = {
   pairLocalDevice(payload: LocalPairDevicePayload): Promise<LocalPairResult> {
     return deviceService.pairLocalDevice(payload);
   },
-  getPairingRequests: deviceService.getPairingRequests,
+  getPairingRequests(homeId?: string | null): Promise<DevicePairingRequest[]> {
+    return deviceService.getPairingRequests(homeId);
+  },
   approvePairingRequest(requestId: string): Promise<EldoraDevice> {
     return deviceService.approvePairingRequest(requestId);
   },
@@ -99,10 +103,10 @@ export const devicesApi = {
     const res = await apiClient.get<{ data: { audioUrl: string | null; text: string } }>(`/devices/${deviceId}/voice-test-audio`);
     return res.data.data;
   },
-  async getScreenData(): Promise<DevicesScreenData> {
+  async getScreenData(homeId?: string | null): Promise<DevicesScreenData> {
     const [devices, pairingRequests] = await Promise.all([
-      deviceService.getDevices(),
-      deviceService.getPairingRequests().catch(() => []),
+      deviceService.getDevices(homeId),
+      deviceService.getPairingRequests(homeId).catch(() => []),
     ]);
 
     return { devices, pairingRequests };

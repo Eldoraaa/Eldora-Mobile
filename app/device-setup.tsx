@@ -24,6 +24,7 @@ import {
   usePairLocalDeviceMutation,
 } from "@/hooks/useDeviceQueries";
 import { COLORS } from "@/constants/theme";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
 import { LocalProvisioningInfo } from "@/types/device.types";
 
 type SetupType = "dorabot" | "dorashield";
@@ -174,7 +175,8 @@ export default function DeviceSetupScreen() {
   const [stepIndex, setStepIndex] = useState(0);
   const [phase, setPhase] = useState<SetupPhase>("guide");
   const [nearbyHubs, setNearbyHubs] = useState<LocalProvisioningInfo[]>([]);
-  const devicesQuery = useDevicesScreenQuery();
+  const { selectedHomeId } = useSelectedHome();
+  const devicesQuery = useDevicesScreenQuery(selectedHomeId);
   const pairedDevices = devicesQuery.data?.devices ?? [];
   const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
   const pairLocalDeviceMutation = usePairLocalDeviceMutation();
@@ -202,10 +204,21 @@ export default function DeviceSetupScreen() {
       return;
     }
 
-    const hubs = await discoverLocalHubsMutation.mutateAsync();
-    const unpairedHubs = hubs.filter((hub) => !isAlreadyPairedHub(hub, pairedDevices));
-    setNearbyHubs(unpairedHubs);
-    setPhase(unpairedHubs.length > 0 ? "found" : "not-found");
+    try {
+      const result = await devicesQuery.refetch();
+      const currentPairedDevices = result.data?.devices ?? pairedDevices;
+      const hubs = await discoverLocalHubsMutation.mutateAsync();
+      const unpairedHubs = hubs.filter((hub) => !isAlreadyPairedHub(hub, currentPairedDevices));
+      setNearbyHubs(unpairedHubs);
+      setPhase(unpairedHubs.length > 0 ? "found" : "not-found");
+    } catch {
+      setPhase("not-found");
+      Toast.show({
+        type: "error",
+        text1: "Search failed",
+        text2: "Check Wi-Fi and try again.",
+      });
+    }
   };
 
   const advanceTutorial = () => {
@@ -219,12 +232,23 @@ export default function DeviceSetupScreen() {
 
   const pairHub = async (hub: LocalProvisioningInfo) => {
     try {
+      const latestDevices = (await devicesQuery.refetch()).data?.devices ?? pairedDevices;
+      if (isAlreadyPairedHub(hub, latestDevices)) {
+        Toast.show({
+          type: "success",
+          text1: "Device already connected",
+        });
+        router.replace("/home" as never);
+        return;
+      }
+
       const result = await pairLocalDeviceMutation.mutateAsync({
         deviceKey: hub.deviceKey,
         pairingToken: hub.pairingToken,
         localIp: hub.ipAddress,
         elderName: "Eldora User",
         deviceName: "DoraBot",
+        homeId: selectedHomeId,
         batteryLevel: hub.batteryLevel ?? undefined,
         isCharging: hub.isCharging,
         wifiSsid: hub.wifiSsid ?? undefined,

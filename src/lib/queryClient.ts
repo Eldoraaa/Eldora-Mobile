@@ -14,14 +14,16 @@ export const queryKeys = {
       ["home", "settings", homeId ?? "default"] as const,
   },
   devices: {
-    screen: ["devices", "screen"] as const,
+    screen: (homeId?: string | null) =>
+      ["devices", "screen", homeId ?? "default"] as const,
     roomCategories: (homeId?: string | null) =>
       ["devices", "room-categories", homeId ?? "default"] as const,
     voiceConfig: (deviceId: string) => ["devices", "voice-config", deviceId] as const,
   },
   notifications: {
     detail: (id?: string | null) => ["notifications", "detail", id ?? "default"] as const,
-    list: (type?: string) => ["notifications", "list", type ?? "all"] as const,
+    list: (type?: string, homeId?: string | null) =>
+      ["notifications", "list", type ?? "all", homeId ?? "default"] as const,
     preferences: ["notifications", "preferences"] as const,
   },
   scenes: {

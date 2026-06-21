@@ -18,19 +18,20 @@ export function useNotificationQuery(notificationId?: string | null) {
 
 export function useNotificationsQuery(params: ListNotificationsParams = {}) {
   return useQuery({
-    queryKey: queryKeys.notifications.list(params.type),
+    queryKey: queryKeys.notifications.list(params.type, params.homeId),
     queryFn: () => notificationApi.getNotifications(params),
+    enabled: Boolean(params.homeId),
   });
 }
 
-export function useMarkNotificationReadMutation(type?: string) {
+export function useMarkNotificationReadMutation(type?: string, homeId?: string | null) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (notificationId: string) =>
       notificationApi.markNotificationRead(notificationId),
     onMutate: async (notificationId) => {
-      const key = queryKeys.notifications.list(type);
+      const key = queryKeys.notifications.list(type, homeId);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<NotificationItem[]>(key);
 
@@ -54,13 +55,13 @@ export function useMarkNotificationReadMutation(type?: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.notifications.list(type),
+        queryKey: queryKeys.notifications.list(type, homeId),
       });
     },
   });
 }
 
-export function useRespondNotificationMutation(type?: string) {
+export function useRespondNotificationMutation(type?: string, homeId?: string | null) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -75,14 +76,14 @@ export function useRespondNotificationMutation(type?: string) {
     }) => notificationApi.respondNotification(notificationId, { status, note }),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.notifications.list(type),
+        queryKey: queryKeys.notifications.list(type, homeId),
       });
       void queryClient.invalidateQueries({ queryKey: queryKeys.home.safetySummary });
     },
   });
 }
 
-export function useResolveNotificationMutation(type?: string) {
+export function useResolveNotificationMutation(type?: string, homeId?: string | null) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -90,7 +91,7 @@ export function useResolveNotificationMutation(type?: string) {
       notificationApi.resolveNotification(notificationId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.notifications.list(type),
+        queryKey: queryKeys.notifications.list(type, homeId),
       });
       void queryClient.invalidateQueries({ queryKey: queryKeys.home.safetySummary });
     },

@@ -1,5 +1,10 @@
 import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { devicesApi, DevicesScreenData, VoiceConfigInput } from "@/api/devicesApi";
 import { queryKeys } from "@/lib/queryClient";
 import {
@@ -29,10 +34,17 @@ function toHomeSummary(devices: EldoraDevice[]): HomeSummary {
   };
 }
 
-export function useDevicesScreenQuery() {
+function refreshDeviceData(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ["devices", "screen"] });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.home.summary });
+}
+
+export function useDevicesScreenQuery(homeId?: string | null) {
   return useQuery({
-    queryKey: queryKeys.devices.screen,
-    queryFn: devicesApi.getScreenData,
+    queryKey: queryKeys.devices.screen(homeId),
+    queryFn: () => devicesApi.getScreenData(homeId),
+    enabled: Boolean(homeId),
+    refetchOnMount: "always",
   });
 }
 
@@ -40,6 +52,7 @@ export function useRoomCategoriesQuery(homeId?: string | null) {
   return useQuery({
     queryKey: queryKeys.devices.roomCategories(homeId),
     queryFn: () => devicesApi.getRoomCategories(homeId),
+    enabled: Boolean(homeId),
   });
 }
 
@@ -62,9 +75,7 @@ export function usePairLocalDeviceMutation() {
   return useMutation({
     mutationFn: (payload: LocalPairDevicePayload) =>
       devicesApi.pairLocalDevice(payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.devices.screen });
-    },
+    onSuccess: () => refreshDeviceData(queryClient),
   });
 }
 
@@ -73,9 +84,7 @@ export function useApprovePairingRequestMutation() {
 
   return useMutation({
     mutationFn: devicesApi.approvePairingRequest,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.devices.screen });
-    },
+    onSuccess: () => refreshDeviceData(queryClient),
   });
 }
 
@@ -84,13 +93,13 @@ export function useRejectPairingRequestMutation() {
 
   return useMutation({
     mutationFn: devicesApi.rejectPairingRequest,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.devices.screen });
-    },
+    onSuccess: () => refreshDeviceData(queryClient),
   });
 }
 
 export function useQueueWifiConfigMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       deviceId,
@@ -99,6 +108,7 @@ export function useQueueWifiConfigMutation() {
       deviceId: string;
       payload: WifiConfigPayload;
     }) => devicesApi.queueWifiConfig(deviceId, payload),
+    onSuccess: () => refreshDeviceData(queryClient),
   });
 }
 
@@ -108,9 +118,7 @@ export function useUpdateDeviceManagementMutation() {
   return useMutation({
     mutationFn: (payload: DeviceManagementPayload) =>
       devicesApi.updateDeviceManagement(payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.devices.screen });
-    },
+    onSuccess: () => refreshDeviceData(queryClient),
   });
 }
 
@@ -162,7 +170,7 @@ export function useDeleteRoomCategoryMutation(homeId?: string | null) {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.devices.roomCategories(homeId),
       });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.devices.screen });
+      void queryClient.invalidateQueries({ queryKey: ["devices", "screen"] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.home.homes });
       if (homeId) {
         void queryClient.invalidateQueries({
@@ -174,6 +182,8 @@ export function useDeleteRoomCategoryMutation(homeId?: string | null) {
 }
 
 export function useProvisionLocalWifiMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       payload,
@@ -182,6 +192,7 @@ export function useProvisionLocalWifiMutation() {
       payload: WifiConfigPayload;
       ipAddress?: string | null;
     }) => devicesApi.provisionLocalWifi(payload, ipAddress),
+    onSuccess: () => refreshDeviceData(queryClient),
   });
 }
 
@@ -201,9 +212,7 @@ export function useDeleteDeviceMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (deviceId: string) => devicesApi.deleteDevice(deviceId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.devices.screen });
-    },
+    onSuccess: () => refreshDeviceData(queryClient),
   });
 }
 

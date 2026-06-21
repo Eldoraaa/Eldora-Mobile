@@ -25,6 +25,7 @@ import {
   useUpdateRoomCategoriesMutation,
 } from "@/hooks/useDeviceQueries";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
 import { RoomCategory } from "@/types/device.types";
 import { reorderRooms } from "@/utils/room.utils";
 
@@ -34,10 +35,11 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function RoomManagementScreen() {
   const params = useLocalSearchParams<{ homeId?: string }>();
-  const homeId = params.homeId ?? null;
+  const { selectedHomeId } = useSelectedHome();
+  const homeId = params.homeId ?? selectedHomeId;
   const goBack = useBackNavigation("/home-management");
   const roomCategoriesQuery = useRoomCategoriesQuery(homeId);
-  const devicesScreenQuery = useDevicesScreenQuery();
+  const devicesScreenQuery = useDevicesScreenQuery(homeId);
   const createRoomMutation = useCreateRoomCategoryMutation(homeId);
   const updateRoomsMutation = useUpdateRoomCategoriesMutation(homeId);
   const deleteRoomMutation = useDeleteRoomCategoryMutation(homeId);

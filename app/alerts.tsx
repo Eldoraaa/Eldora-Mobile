@@ -20,6 +20,7 @@ import {
   useMarkNotificationReadMutation,
   useNotificationsQuery,
 } from "@/hooks/useNotificationQueries";
+import { useSelectedHome } from "@/hooks/useSelectedHome";
 import type {
   NotificationItem,
   NotificationType,
@@ -155,10 +156,12 @@ function EmptyMessages() {
 
 export default function MessageCenterScreen() {
   const [selectedType, setSelectedType] = useState<NotificationType>("alarm");
+  const { selectedHomeId } = useSelectedHome();
   const { data, isLoading, isRefetching, refetch } = useNotificationsQuery({
     type: selectedType,
+    homeId: selectedHomeId,
   });
-  const markRead = useMarkNotificationReadMutation(selectedType);
+  const markRead = useMarkNotificationReadMutation(selectedType, selectedHomeId);
   const activeFilter = useMemo(
     () => FILTERS.find((filter) => filter.type === selectedType) ?? FILTERS[0],
     [selectedType]

@@ -46,6 +46,7 @@ export interface PairDevicePayload {
   deviceKey: string;
   elderName?: string;
   deviceName?: string;
+  homeId?: string | null;
 }
 
 export interface LocalPairDevicePayload extends PairDevicePayload {
@@ -64,6 +65,7 @@ export interface WifiConfigPayload {
 }
 
 export interface DeviceManagementPayload {
+  homeId?: string | null;
   devices: Array<{
     id: string;
     sortOrder?: number;

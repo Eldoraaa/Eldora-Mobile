@@ -40,6 +40,7 @@ export type NotificationItem = {
 
 export type ListNotificationsParams = {
   type?: NotificationType;
+  homeId?: string | null;
   limit?: number;
 };
 

@@ -25,9 +25,9 @@ const LOCAL_PROVISIONING_FALLBACK_HOSTS = [
   "192.168.1.1",
   "192.168.0.1",
 ];
-const LOCAL_SCAN_TIMEOUT_MS = 750;
-const LOCAL_SCAN_CONCURRENCY = 64;
-const LOCAL_DISCOVERY_TIMEOUT_MS = 12000;
+const LOCAL_SCAN_TIMEOUT_MS = 1200;
+const LOCAL_SCAN_CONCURRENCY = 48;
+const LOCAL_DISCOVERY_TIMEOUT_MS = 20000;
 
 function isIPv4(value: string) {
   return /^\d{1,3}(\.\d{1,3}){3}$/.test(value);
@@ -44,8 +44,18 @@ function buildDiscoveryCandidates(ipAddress: string) {
   const subnet = subnetFromIp(ipAddress);
 
   if (subnet) {
-    for (let host = 1; host <= 254; host += 1) {
-      const candidate = `${subnet}.${host}`;
+    const gateway = `${subnet}.1`;
+    if (gateway !== ipAddress) candidates.add(gateway);
+    for (let offset = 1; offset <= 20; offset += 1) {
+      const candidate = `${subnet}.${offset}`;
+      if (candidate !== ipAddress) candidates.add(candidate);
+    }
+    for (let offset = 80; offset <= 140; offset += 1) {
+      const candidate = `${subnet}.${offset}`;
+      if (candidate !== ipAddress) candidates.add(candidate);
+    }
+    for (let offset = 2; offset <= 254; offset += 1) {
+      const candidate = `${subnet}.${offset}`;
       if (candidate !== ipAddress) candidates.add(candidate);
     }
   }
@@ -150,9 +160,10 @@ async function runDiscoveryPool(candidates: string[]) {
 }
 
 export const deviceService = {
-  async getDevices(): Promise<EldoraDevice[]> {
+  async getDevices(homeId?: string | null): Promise<EldoraDevice[]> {
     const response = await apiClient.get<ApiResponse<EldoraDevice[]>>(
-      ENDPOINTS.DEVICES
+      ENDPOINTS.DEVICES,
+      { params: homeId ? { homeId } : undefined }
     );
     return response.data.data;
   },
@@ -224,9 +235,10 @@ export const deviceService = {
     };
   },
 
-  async getPairingRequests(): Promise<DevicePairingRequest[]> {
+  async getPairingRequests(homeId?: string | null): Promise<DevicePairingRequest[]> {
     const response = await apiClient.get<ApiResponse<DevicePairingRequest[]>>(
-      ENDPOINTS.PAIRING_REQUESTS
+      ENDPOINTS.PAIRING_REQUESTS,
+      { params: homeId ? { homeId } : undefined }
     );
     return response.data.data;
   },

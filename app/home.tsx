@@ -122,6 +122,10 @@ export default function HomeScreen() {
     ...managedRoomCategories,
   ];
 
+  useEffect(() => {
+    setSelectedRoomSlug("all");
+  }, [selectedHomeId]);
+
   const onlineCount = useMemo(
     () => devices.filter((device) => device.isOnline).length,
     [devices]

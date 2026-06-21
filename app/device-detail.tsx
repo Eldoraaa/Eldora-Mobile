@@ -196,13 +196,14 @@ function EmotionBar({ label, count, total, color }: { label: string; count: numb
 
 export default function DeviceDetailScreen() {
   const goBack = useBackNavigation("/home");
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string; homeId?: string }>();
   const [selectedDays, setSelectedDays] = useState<RangeDays>(7);
   const { selectedHomeId } = useSelectedHome();
-  const devicesQuery = useDevicesScreenQuery(selectedHomeId);
+  const homeId = params.homeId ?? selectedHomeId;
+  const devicesQuery = useDevicesScreenQuery(homeId);
   const startDateIso = isoFromDaysAgo(selectedDays);
-  const safetySummaryQuery = useSafetySummaryQuery(selectedHomeId);
-  const wellnessSummaryQuery = useWellnessSummaryQuery(selectedHomeId, startDateIso);
+  const safetySummaryQuery = useSafetySummaryQuery(homeId);
+  const wellnessSummaryQuery = useWellnessSummaryQuery(homeId, startDateIso);
   const device = devicesQuery.data?.devices.find((item) => item.id === params.id);
   const shield = device ? isDoraShieldDevice(device) : false;
   const title = device ? (shield ? "DoraShield" : "DoraBot") : "Device";

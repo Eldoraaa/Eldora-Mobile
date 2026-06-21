@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useNotificationQueries";
 import { useSafetySummaryQuery } from "@/hooks/useHomeManagementQueries";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
+import { useHomeStore } from "@/stores/homeStore";
 import type { NotificationType } from "@/types/notification.types";
 import { formatRelativeTime } from "@/utils/formatters";
 
@@ -117,6 +118,7 @@ export default function AlertDetailScreen() {
   const safetySummaryQuery = useSafetySummaryQuery(notification?.home?.id);
   const notificationType = notification?.type ?? params.type;
   const notificationHomeId = notification?.home?.id ?? null;
+  const setSelectedHomeId = useHomeStore((state) => state.setSelectedHomeId);
   const markRead = useMarkNotificationReadMutation(notificationType, notificationHomeId);
   const respondNotification = useRespondNotificationMutation(notificationType, notificationHomeId);
   const resolveNotification = useResolveNotificationMutation(notificationType, notificationHomeId);
@@ -133,6 +135,10 @@ export default function AlertDetailScreen() {
   const showCallAction = metadata.showCallAction === true || notification?.type === "alarm";
   const emergencyContact = safetySummaryQuery.data?.emergencyContact ?? null;
   const isCritical = severity === "critical" || notification?.type === "alarm";
+
+  useEffect(() => {
+    if (notificationHomeId) setSelectedHomeId(notificationHomeId);
+  }, [notificationHomeId, setSelectedHomeId]);
 
   if (loading && !notification) {
     return (
@@ -316,7 +322,7 @@ export default function AlertDetailScreen() {
                     void Linking.openURL(`tel:${emergencyContact.phone}`);
                     return;
                   }
-                  router.push("/home-settings" as never);
+                  router.push({ pathname: "/home-settings", params: notificationHomeId ? { homeId: notificationHomeId } : undefined } as never);
                 }}
               />
             ) : null}
@@ -325,7 +331,15 @@ export default function AlertDetailScreen() {
               description="Open the paired device detail page for this alert."
               Icon={Router}
               disabled={!notification.device?.id}
-              onPress={() => router.push(`/device-detail?id=${notification.device?.id}` as never)}
+              onPress={() =>
+                router.push({
+                  pathname: "/device-detail",
+                  params: {
+                    id: notification.device?.id,
+                    ...(notificationHomeId ? { homeId: notificationHomeId } : {}),
+                  },
+                } as never)
+              }
             />
             <ActionButton
               title="Back to alerts"

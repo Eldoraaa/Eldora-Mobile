@@ -19,22 +19,25 @@ export function useHomesQuery() {
 
 export function useSafetySummaryQuery(homeId?: string | null) {
   return useQuery({
-    queryKey: [...queryKeys.home.safetySummary, homeId ?? "all"],
+    queryKey: [...queryKeys.home.safetySummary, homeId ?? "default"],
     queryFn: () => homeApi.getSafetySummary(homeId),
+    enabled: Boolean(homeId),
   });
 }
 
 export function useWellnessSummaryQuery(homeId?: string | null, startDate?: string, endDate?: string) {
   return useQuery({
-    queryKey: [...queryKeys.home.wellnessSummary, homeId ?? "all", startDate ?? "", endDate ?? ""],
+    queryKey: [...queryKeys.home.wellnessSummary, homeId ?? "default", startDate ?? "", endDate ?? ""],
     queryFn: () => homeApi.getWellnessSummary(homeId, startDate, endDate),
+    enabled: Boolean(homeId),
   });
 }
 
 export function useEmergencyContactsQuery(homeId?: string | null) {
   return useQuery({
-    queryKey: [...queryKeys.home.emergencyContacts, homeId ?? "all"],
+    queryKey: [...queryKeys.home.emergencyContacts, homeId ?? "default"],
     queryFn: () => homeApi.getEmergencyContacts(homeId),
+    enabled: Boolean(homeId),
   });
 }
 

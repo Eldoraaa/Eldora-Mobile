@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
@@ -53,6 +53,10 @@ export default function SceneScreen() {
   });
   const executeSceneMutation = useExecuteSceneMutation();
   const scenes = scenesQuery.data ?? [];
+
+  useEffect(() => {
+    setSelectedRoomSlug("all");
+  }, [selectedHomeId]);
   const devicesById = useMemo(
     () =>
       new Map(

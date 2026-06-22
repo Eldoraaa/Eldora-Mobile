@@ -7,6 +7,7 @@ import {
   Battery,
   Bell,
   CalendarDays,
+  ChevronLeft,
   ChevronRight,
   HeartPulse,
   LucideIcon,
@@ -278,14 +279,14 @@ function CalendarPicker({ value, onChange }: { value: string; onChange: (value: 
   return (
     <View className="rounded-[22px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
       <View className="mb-4 flex-row items-center justify-between">
-        <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-white" onPress={prevMonth}>
-          <ChevronRight size={20} color={COLORS.text} style={{ transform: [{ rotate: "180deg" }] }} />
+        <Pressable className="h-10 w-10 items-center justify-center" onPress={prevMonth}>
+          <ChevronLeft size={22} color={COLORS.text} />
         </Pressable>
         <Text className="text-[17px] font-extrabold" style={{ color: COLORS.text }}>
           {MONTHS[month]} {year}
         </Text>
-        <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-white" onPress={nextMonth}>
-          <ChevronRight size={20} color={COLORS.text} />
+        <Pressable className="h-10 w-10 items-center justify-center" onPress={nextMonth}>
+          <ChevronRight size={22} color={COLORS.text} />
         </Pressable>
       </View>
       <View className="mb-2 flex-row">

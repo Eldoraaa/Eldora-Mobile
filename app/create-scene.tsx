@@ -9,7 +9,7 @@ import { COLORS } from "@/constants/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 
 const CATEGORY_LABELS = {
-  care: "Time-based scene",
+  care: "Scene examples",
 } as const;
 
 export default function CreateSceneScreen() {
@@ -37,7 +37,7 @@ export default function CreateSceneScreen() {
             className="px-8 text-[16px] font-semibold leading-6"
             style={{ color: COLORS.muted }}
           >
-            Create one daily or weekly DoraBot reminder for medication, check-ins, greetings, or any routine.
+            Choose a scene example, select the device that runs it, then review the rule before saving.
           </Text>
 
           {groupedTemplates.map((group) =>

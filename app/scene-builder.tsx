@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -14,8 +16,10 @@ import Toast from "react-native-toast-message";
 import {
   ChevronLeft,
   AlertCircle,
+  CalendarDays,
   CheckCircle2,
   ChevronRight,
+  Clock3,
   Pencil,
   Router,
   ShieldCheck,
@@ -24,7 +28,7 @@ import { ScreenHeader } from "@/components/navigation/ScreenHeader";
 import { findSceneTemplate } from "@/constants/sceneTemplates";
 import { COLORS } from "@/constants/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
-import { useDevicesScreenQuery, useRoomCategoriesQuery } from "@/hooks/useDeviceQueries";
+import { useDevicesScreenQuery } from "@/hooks/useDeviceQueries";
 import { useSelectedHome } from "@/hooks/useSelectedHome";
 import { useCreateSceneMutation } from "@/hooks/useSceneQueries";
 import { EldoraDevice } from "@/types/device.types";
@@ -55,6 +59,16 @@ const SCHEDULE_RULE: RuleOption = {
 
 const ACTION_OPTIONS: ActionOption[] = [
   { label: "Speak on DoraBot", type: "speak_on_dorabot", target: "dorabot" },
+];
+
+const WEEKDAYS = [
+  { label: "Sun", value: 0 },
+  { label: "Mon", value: 1 },
+  { label: "Tue", value: 2 },
+  { label: "Wed", value: 3 },
+  { label: "Thu", value: 4 },
+  { label: "Fri", value: 5 },
+  { label: "Sat", value: 6 },
 ];
 
 function deviceLooksLike(device: EldoraDevice, deviceName: string) {
@@ -124,14 +138,17 @@ function SummaryRow({
   icon,
   title,
   subtitle,
+  onPress,
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle?: string;
+  onPress?: () => void;
 }) {
+  const Container = onPress ? TouchableOpacity : View;
   return (
-    <View className="flex-row items-center py-5">
-      <View className="mr-5 h-[48px] w-[48px] items-center justify-center">{icon}</View>
+    <Container className="flex-row items-center py-5" {...(onPress ? { activeOpacity: 0.78, onPress } : {})}>
+      <View className="mr-4 h-[44px] w-[44px] items-center justify-center rounded-[16px]" style={{ backgroundColor: COLORS.surfaceMuted }}>{icon}</View>
       <View className="flex-1">
         <Text className="text-[17px] font-extrabold leading-6" style={{ color: COLORS.text }}>
           {title}
@@ -142,7 +159,8 @@ function SummaryRow({
           </Text>
         ) : null}
       </View>
-    </View>
+      {onPress ? <ChevronRight size={20} color={COLORS.disabled} /> : null}
+    </Container>
   );
 }
 
@@ -153,13 +171,12 @@ export default function SceneBuilderScreen() {
   const { selectedHome, selectedHomeId } = useSelectedHome();
   const devicesQuery = useDevicesScreenQuery(selectedHomeId);
   const pairedDevices = devicesQuery.data?.devices ?? [];
-  const roomCategoriesQuery = useRoomCategoriesQuery(selectedHomeId);
   const goBackToList = useBackNavigation("/create-scene");
 
   const [step, setStep] = useState<BuilderStep>("setup");
   const [name, setName] = useState(template?.title ?? "");
-  const [roomCategoryId, setRoomCategoryId] = useState<string | null>(null);
   const [deviceBindings, setDeviceBindings] = useState<Partial<Record<BindableDeviceType, string>>>({});
+  const [showPreconditionSheet, setShowPreconditionSheet] = useState(false);
   const [selectedActionTypes, setSelectedActionTypes] = useState<SceneActionType[]>(["speak_on_dorabot"]);
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const [scheduleFrequency, setScheduleFrequency] = useState<"daily" | "weekly">("daily");
@@ -279,10 +296,9 @@ export default function SceneBuilderScreen() {
     [cleanedDeviceBindings, dorabotMessage, hasDeviceBindings]
   );
 
-  const selectedRoomName =
-    roomCategoryId === null
-      ? "Whole home"
-      : roomCategoriesQuery.data?.find((room) => room.id === roomCategoryId)?.name ?? "Room";
+  const preconditionLabel = scheduleFrequency === "daily"
+    ? "Every day"
+    : `Every ${WEEKDAYS.find((day) => day.value === scheduleWeekday)?.label ?? "week"}`;
 
   const handleBack = () => {
     if (step === "rule") {
@@ -339,7 +355,7 @@ export default function SceneBuilderScreen() {
         homeId: selectedHome.id,
         name: name.trim() || template.title,
         triggerType: selectedRule.triggerType,
-        roomCategoryId,
+        roomCategoryId: null,
         triggerConfig: draftTriggerConfig,
         actions: draftActions,
       });
@@ -522,66 +538,20 @@ export default function SceneBuilderScreen() {
                 <Text className="mt-2 text-[16px] font-semibold leading-6" style={{ color: COLORS.text }}>
                   Choose when DoraBot should speak this reminder.
                 </Text>
-                <View className="mt-5 gap-4">
-                  <View>
-                    <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                      Frequency
-                    </Text>
-                    <View className="flex-row gap-2">
-                      {(["daily", "weekly"] as const).map((freq) => (
-                        <TouchableOpacity
-                          key={freq}
-                          className="rounded-full px-5 py-3"
-                          style={{ backgroundColor: scheduleFrequency === freq ? COLORS.coralSoft : COLORS.surfaceMuted }}
-                          activeOpacity={0.78}
-                          onPress={() => setScheduleFrequency(freq)}
-                        >
-                          <Text className="text-[13px] font-extrabold capitalize" style={{ color: scheduleFrequency === freq ? COLORS.coral : COLORS.text }}>
-                            {freq}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                  {scheduleFrequency === "weekly" ? (
-                    <View>
-                      <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                        Day
-                      </Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <View className="flex-row gap-2">
-                          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
-                            <TouchableOpacity
-                              key={day}
-                              className="h-[42px] w-[42px] items-center justify-center rounded-full"
-                              style={{ backgroundColor: scheduleWeekday === index ? COLORS.coral : COLORS.surfaceMuted }}
-                              activeOpacity={0.78}
-                              onPress={() => setScheduleWeekday(index)}
-                            >
-                              <Text className="text-[12px] font-extrabold" style={{ color: scheduleWeekday === index ? "white" : COLORS.text }}>
-                                {day}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </ScrollView>
-                    </View>
-                  ) : null}
-                  <View>
-                    <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                      Time (HH:MM)
-                    </Text>
-                    <TextInput
-                      value={scheduleTime}
-                      onChangeText={setScheduleTime}
-                      placeholder="09:00"
-                      placeholderTextColor={COLORS.disabled}
-                      className="h-[50px] rounded-[12px] border px-4 text-[16px] font-semibold"
-                      style={{ borderColor: COLORS.line, color: COLORS.text }}
-                      accessibilityLabel="Schedule time"
-                      returnKeyType="done"
-                    />
-                  </View>
+                <View className="mt-5">
+                  <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                    Time (HH:MM)
+                  </Text>
+                  <TextInput
+                    value={scheduleTime}
+                    onChangeText={setScheduleTime}
+                    placeholder="09:00"
+                    placeholderTextColor={COLORS.disabled}
+                    className="h-[50px] rounded-[12px] border px-4 text-[16px] font-semibold"
+                    style={{ borderColor: COLORS.line, color: COLORS.text }}
+                    accessibilityLabel="Schedule time"
+                    returnKeyType="done"
+                  />
                 </View>
               </View>
 
@@ -607,50 +577,86 @@ export default function SceneBuilderScreen() {
               <View className="mt-10">
                 <View className="h-px" style={{ backgroundColor: COLORS.line }} />
                 <SummaryRow
-                  icon={<View />}
+                  icon={<CalendarDays size={22} color={COLORS.coral} />}
                   title="Precondition"
-                  subtitle="All day"
+                  subtitle={preconditionLabel}
+                  onPress={() => setShowPreconditionSheet(true)}
                 />
-                <SummaryRow
-                  icon={<View />}
-                  title="Display Area"
-                  subtitle={selectedRoomName}
-                />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-1">
-                  <TouchableOpacity
-                    className="mr-3 rounded-full px-5 py-3"
-                    style={{
-                      backgroundColor: roomCategoryId === null ? COLORS.surfaceMuted : "#FFFFFF",
-                      borderColor: roomCategoryId === null ? COLORS.line : "transparent",
-                      borderWidth: 1,
-                    }}
-                    onPress={() => setRoomCategoryId(null)}
-                  >
-                    <Text className="text-[14px] font-extrabold" style={{ color: roomCategoryId === null ? COLORS.text : COLORS.muted }}>
-                      Whole home
-                    </Text>
-                  </TouchableOpacity>
-                  {(roomCategoriesQuery.data ?? []).map((room) => (
-                    <TouchableOpacity
-                      key={room.id}
-                      className="mr-3 rounded-full px-5 py-3"
-                      style={{
-                        backgroundColor: roomCategoryId === room.id ? COLORS.surfaceMuted : "#FFFFFF",
-                        borderColor: roomCategoryId === room.id ? COLORS.line : "transparent",
-                        borderWidth: 1,
-                      }}
-                      onPress={() => setRoomCategoryId(room.id)}
-                    >
-                      <Text className="text-[14px] font-extrabold" style={{ color: roomCategoryId === room.id ? COLORS.text : COLORS.muted }}>
-                        {room.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
               </View>
             </>
           ) : null}
         </ScrollView>
+
+        <Modal
+          transparent
+          visible={showPreconditionSheet}
+          animationType="fade"
+          accessibilityViewIsModal
+          onRequestClose={() => setShowPreconditionSheet(false)}
+        >
+          <Pressable className="flex-1 justify-end bg-black/45" onPress={() => setShowPreconditionSheet(false)}>
+            <Pressable
+              className="rounded-t-[28px] bg-white px-7 pb-8 pt-7"
+              accessibilityRole="summary"
+              accessibilityLabel="Precondition schedule"
+              onPress={(event) => event.stopPropagation()}
+            >
+              <View className="mb-5 h-1.5 w-12 self-center rounded-full bg-[#E8ECEF]" />
+              <Text className="text-center text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+                Precondition
+              </Text>
+              <Text className="mt-2 text-center text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                Choose when this scene is allowed to run.
+              </Text>
+
+              <View className="mt-6 flex-row gap-3">
+                {(["daily", "weekly"] as const).map((freq) => {
+                  const active = scheduleFrequency === freq;
+                  return (
+                    <Pressable
+                      key={freq}
+                      className="h-[58px] flex-1 items-center justify-center rounded-[18px] border"
+                      style={{ borderColor: active ? COLORS.coral : COLORS.line, backgroundColor: active ? COLORS.coralSoft : "#fff" }}
+                      onPress={() => setScheduleFrequency(freq)}
+                    >
+                      <Text className="text-[15px] font-extrabold capitalize" style={{ color: active ? COLORS.coral : COLORS.text }}>
+                        {freq}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {scheduleFrequency === "weekly" ? (
+                <View className="mt-6 flex-row flex-wrap justify-between gap-y-3">
+                  {WEEKDAYS.map((day) => {
+                    const active = scheduleWeekday === day.value;
+                    return (
+                      <Pressable
+                        key={day.value}
+                        className="h-[52px] w-[30%] items-center justify-center rounded-[18px] border"
+                        style={{ borderColor: active ? COLORS.coral : COLORS.line, backgroundColor: active ? COLORS.coral : "#fff" }}
+                        onPress={() => setScheduleWeekday(day.value)}
+                      >
+                        <Text className="text-[15px] font-extrabold" style={{ color: active ? "#fff" : COLORS.text }}>
+                          {day.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+
+              <Pressable
+                className="mt-7 h-[52px] items-center justify-center rounded-2xl"
+                style={{ backgroundColor: COLORS.coral }}
+                onPress={() => setShowPreconditionSheet(false)}
+              >
+                <Text className="text-[15px] font-extrabold text-white">Done</Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <View
           className="flex-row gap-3 px-6 pb-5 pt-3"

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -154,17 +154,32 @@ const RANGE_OPTIONS = [
   { value: "7d", label: "7D", days: 7 },
   { value: "14d", label: "14D", days: 14 },
   { value: "30d", label: "30D", days: 30 },
-  { value: "custom", label: "Custom", days: null },
+  { value: "custom", label: "", days: null },
 ] as const;
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
 
 function toDateInputValue(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function dateFromDaysAgo(days: number) {
   return toDateInputValue(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+}
+
+function dateInputToDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function isSameDate(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 function shortDate(value: string) {
@@ -214,6 +229,77 @@ function EmotionBar({ label, count, total, color }: { label: string; count: numb
   );
 }
 
+function CalendarPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const selectedDate = dateInputToDate(value);
+  const [month, setMonth] = useState(selectedDate.getMonth());
+  const [year, setYear] = useState(selectedDate.getFullYear());
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const today = new Date();
+  const days: React.ReactNode[] = [];
+
+  for (let index = 0; index < firstDay; index += 1) {
+    days.push(<View key={`empty-${index}`} className="h-10 w-[14.28%]" />);
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(year, month, day);
+    const selected = isSameDate(date, selectedDate);
+    const current = isSameDate(date, today);
+    days.push(
+      <TouchableOpacity key={day} className="h-10 w-[14.28%] items-center justify-center" activeOpacity={0.76} onPress={() => onChange(toDateInputValue(date))}>
+        <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: selected ? COLORS.coral : current ? COLORS.coralSoft : "transparent" }}>
+          <Text className="text-[14px] font-extrabold" style={{ color: selected ? "#fff" : current ? COLORS.coral : COLORS.text }}>
+            {day}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  const prevMonth = () => {
+    if (month === 0) {
+      setMonth(11);
+      setYear((current) => current - 1);
+      return;
+    }
+    setMonth((current) => current - 1);
+  };
+
+  const nextMonth = () => {
+    if (month === 11) {
+      setMonth(0);
+      setYear((current) => current + 1);
+      return;
+    }
+    setMonth((current) => current + 1);
+  };
+
+  return (
+    <View className="rounded-[22px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+      <View className="mb-4 flex-row items-center justify-between">
+        <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-white" onPress={prevMonth}>
+          <ChevronRight size={20} color={COLORS.text} style={{ transform: [{ rotate: "180deg" }] }} />
+        </Pressable>
+        <Text className="text-[17px] font-extrabold" style={{ color: COLORS.text }}>
+          {MONTHS[month]} {year}
+        </Text>
+        <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-white" onPress={nextMonth}>
+          <ChevronRight size={20} color={COLORS.text} />
+        </Pressable>
+      </View>
+      <View className="mb-2 flex-row">
+        {DAYS.map((day, index) => (
+          <View key={`${day}-${index}`} className="w-[14.28%] items-center">
+            <Text className="text-[11px] font-extrabold" style={{ color: COLORS.muted }}>{day}</Text>
+          </View>
+        ))}
+      </View>
+      <View className="flex-row flex-wrap">{days}</View>
+    </View>
+  );
+}
+
 export default function DeviceDetailScreen() {
   const goBack = useBackNavigation("/home");
   const params = useLocalSearchParams<{ id?: string; homeId?: string }>();
@@ -222,6 +308,7 @@ export default function DeviceDetailScreen() {
   const [customTo, setCustomTo] = useState(toDateInputValue(new Date()));
   const [draftFrom, setDraftFrom] = useState(customFrom);
   const [draftTo, setDraftTo] = useState(customTo);
+  const [rangeSide, setRangeSide] = useState<"from" | "to">("from");
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [showRangeModal, setShowRangeModal] = useState(false);
   const { selectedHomeId } = useSelectedHome();
@@ -247,18 +334,8 @@ export default function DeviceDetailScreen() {
   const title = device ? (shield ? "DoraShield" : "DoraBot") : "Device";
   const Icon = shield ? ShieldCheck : RouterIcon;
 
-  const primaryRows = useMemo(() => {
-    if (!device) return [];
-    return [
-      ["Status", deviceStatusText(device.isOnline)],
-      ["Room", device.roomCategory?.name ?? "Home level"],
-      ["Elder profile", device.elderName],
-      [
-        "Last seen",
-        device.lastSeen ? formatRelativeTime(device.lastSeen) : "No heartbeat",
-      ],
-    ];
-  }, [device]);
+  const connectedWifi = device?.wifiSsid ?? "Not configured";
+  const deviceRoom = device?.roomCategory?.name ?? "Home level";
   const riskSummary = safetySummaryQuery.data?.risk;
   const wellnessSummary = wellnessSummaryQuery.data;
   const batteryLevel = device?.batteryLevel ?? null;
@@ -298,6 +375,7 @@ export default function DeviceDetailScreen() {
   const openCustomRange = () => {
     setDraftFrom(customFrom);
     setDraftTo(customTo);
+    setRangeSide("from");
     setRangeError(null);
     setShowRangeModal(true);
   };
@@ -402,11 +480,12 @@ export default function DeviceDetailScreen() {
                     }}
                   >
                     {opt.value === "custom" ? (
-                      <CalendarDays size={14} color={active ? "#fff" : COLORS.muted} />
-                    ) : null}
-                    <Text className="text-[13px] font-extrabold" style={{ color: active ? "#fff" : COLORS.muted, marginLeft: opt.value === "custom" ? 5 : 0 }}>
-                      {opt.label}
-                    </Text>
+                      <CalendarDays size={18} color={active ? "#fff" : COLORS.muted} />
+                    ) : (
+                      <Text className="text-[13px] font-extrabold" style={{ color: active ? "#fff" : COLORS.muted }}>
+                        {opt.label}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -492,32 +571,34 @@ export default function DeviceDetailScreen() {
             />
           </View>
 
-          <View className="mt-7">
-            {primaryRows.map(([label, value]) => (
-              <InfoRow key={label} label={label} value={value} />
-            ))}
-            <InfoRow
-              label="Battery"
-              value={
-                device.batteryLevel === null
-                  ? "Unknown"
-                  : `${device.batteryLevel}%${device.isCharging ? " charging" : ""}`
-              }
-            />
-            <InfoRow label="Firmware" value={device.firmwareVersion ?? "Unknown"} />
-            {!shield ? (
-              <>
-                <InfoRow label="Care role" value="Voice companion and Wi-Fi hub" />
-                <InfoRow label="Wi-Fi" value={device.wifiSsid ?? "Not configured"} />
-                <InfoRow label="Signal" value={signalLabel(device.wifiRssi)} />
-                <InfoRow label="Local IP" value={device.localIp ?? "Unavailable"} />
-              </>
-            ) : (
-              <>
-                <InfoRow label="Care role" value="Fall alert shield" />
-                <InfoRow label="Fall alerts" value="DoraShield movement event" />
-              </>
-            )}
+          <View className="mt-5 rounded-[26px] border bg-white p-5" style={{ borderColor: COLORS.line }}>
+            <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+              Connection
+            </Text>
+            <View className="mt-4 flex-row gap-3">
+              <View className="flex-1 rounded-[20px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                <View className="mb-3 h-10 w-10 items-center justify-center rounded-[15px] bg-white">
+                  <Wifi size={20} color={COLORS.coral} />
+                </View>
+                <Text className="text-[12px] font-bold" style={{ color: COLORS.muted }}>
+                  Wi-Fi
+                </Text>
+                <Text className="mt-1 text-[17px] font-extrabold" style={{ color: COLORS.text }} numberOfLines={1}>
+                  {shield ? "DoraShield" : connectedWifi}
+                </Text>
+              </View>
+              <View className="flex-1 rounded-[20px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                <View className="mb-3 h-10 w-10 items-center justify-center rounded-[15px] bg-white">
+                  <RouterIcon size={20} color={COLORS.coral} />
+                </View>
+                <Text className="text-[12px] font-bold" style={{ color: COLORS.muted }}>
+                  Room
+                </Text>
+                <Text className="mt-1 text-[17px] font-extrabold" style={{ color: COLORS.text }} numberOfLines={1}>
+                  {deviceRoom}
+                </Text>
+              </View>
+            </View>
           </View>
 
           {!shield ? (
@@ -727,43 +808,41 @@ export default function DeviceDetailScreen() {
               onPress={(event) => event.stopPropagation()}
             >
               <View className="mb-5 h-1.5 w-12 self-center rounded-full bg-[#E8ECEF]" />
-              <Text className="text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+              <Text className="text-center text-[22px] font-extrabold" style={{ color: COLORS.text }}>
                 Custom range
               </Text>
-              <Text className="mt-2 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
-                Pick the analytics period for this device. Use YYYY-MM-DD.
+              <Text className="mt-2 text-center text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                Pick the analytics period for this device.
               </Text>
               <View className="mt-6 flex-row gap-3">
-                <View className="flex-1">
-                  <Text className="mb-2 text-[12px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                    From
-                  </Text>
-                  <TextInput
-                    value={draftFrom}
-                    onChangeText={setDraftFrom}
-                    placeholder="2026-06-01"
-                    placeholderTextColor={COLORS.disabled}
-                    className="h-[52px] rounded-[16px] border px-4 text-[15px] font-bold"
-                    style={{ borderColor: COLORS.line, color: COLORS.text }}
-                    autoCapitalize="none"
-                    keyboardType="numbers-and-punctuation"
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="mb-2 text-[12px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                    To
-                  </Text>
-                  <TextInput
-                    value={draftTo}
-                    onChangeText={setDraftTo}
-                    placeholder="2026-06-22"
-                    placeholderTextColor={COLORS.disabled}
-                    className="h-[52px] rounded-[16px] border px-4 text-[15px] font-bold"
-                    style={{ borderColor: COLORS.line, color: COLORS.text }}
-                    autoCapitalize="none"
-                    keyboardType="numbers-and-punctuation"
-                  />
-                </View>
+                {(["from", "to"] as const).map((side) => {
+                  const active = rangeSide === side;
+                  const value = side === "from" ? draftFrom : draftTo;
+                  return (
+                    <Pressable
+                      key={side}
+                      className="h-[58px] flex-1 items-center justify-center rounded-[18px] border"
+                      style={{ borderColor: active ? COLORS.coral : COLORS.line, backgroundColor: active ? COLORS.coralSoft : "#fff" }}
+                      onPress={() => setRangeSide(side)}
+                    >
+                      <Text className="text-[11px] font-extrabold uppercase" style={{ color: active ? COLORS.coral : COLORS.muted }}>
+                        {side}
+                      </Text>
+                      <Text className="mt-1 text-[15px] font-extrabold" style={{ color: COLORS.text }}>
+                        {shortDate(value)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <View className="mt-5">
+                <CalendarPicker
+                  value={rangeSide === "from" ? draftFrom : draftTo}
+                  onChange={(value) => {
+                    if (rangeSide === "from") setDraftFrom(value);
+                    else setDraftTo(value);
+                  }}
+                />
               </View>
               {rangeError ? (
                 <Text className="mt-3 text-[13px] font-semibold" style={{ color: COLORS.coral }}>

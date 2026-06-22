@@ -136,10 +136,10 @@ export default function SceneScreen() {
 
           <View className="mt-8">
             <Text className="text-[18px] font-extrabold leading-6 text-[#17202A]">
-              Scheduled reminders
+              Automation
             </Text>
             <Text className="mt-1 text-[13px] font-semibold leading-5 text-[#5F6B7A]">
-              Daily and weekly DoraBot messages for the selected home.
+              Scenes for the selected home.
             </Text>
           </View>
 

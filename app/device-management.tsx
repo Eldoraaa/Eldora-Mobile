@@ -283,9 +283,7 @@ export default function DeviceManagementScreen() {
                   <Text className="flex-1 text-[20px] font-semibold" style={{ color: COLORS.text }}>
                     Home level
                   </Text>
-                  <View className="h-7 w-7 items-center justify-center rounded-full border-2" style={{ borderColor: selectedRoomId === null ? COLORS.coral : COLORS.disabled, backgroundColor: selectedRoomId === null ? COLORS.coral : "#fff" }}>
-                    {selectedRoomId === null ? <Text className="text-[15px] font-extrabold text-white">✓</Text> : null}
-                  </View>
+                  <View className="h-7 w-7 rounded-full border-2" style={{ borderColor: selectedRoomId === null ? COLORS.coral : COLORS.disabled, backgroundColor: selectedRoomId === null ? COLORS.coral : "#fff" }} />
                 </Pressable>
                 {(roomCategoriesQuery.data ?? []).filter((room) => room.slug !== "all").map((room) => {
                   const selected = selectedRoomId === room.id;
@@ -294,9 +292,7 @@ export default function DeviceManagementScreen() {
                       <Text className="flex-1 text-[20px] font-semibold" style={{ color: COLORS.text }}>
                         {room.name}
                       </Text>
-                      <View className="h-7 w-7 items-center justify-center rounded-full border-2" style={{ borderColor: selected ? COLORS.coral : COLORS.disabled, backgroundColor: selected ? COLORS.coral : "#fff" }}>
-                        {selected ? <Text className="text-[15px] font-extrabold text-white">✓</Text> : null}
-                      </View>
+                      <View className="h-7 w-7 rounded-full border-2" style={{ borderColor: selected ? COLORS.coral : COLORS.disabled, backgroundColor: selected ? COLORS.coral : "#fff" }} />
                     </Pressable>
                   );
                 })}

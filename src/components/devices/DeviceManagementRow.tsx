@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { PanResponder, Pressable, Text, View } from "react-native";
-import { Check, Router as RouterIcon, ShieldCheck } from "lucide-react-native";
+import { Router as RouterIcon, ShieldCheck } from "lucide-react-native";
 import { COLORS } from "@/constants/theme";
 import { EldoraDevice } from "@/types/device.types";
 import { deviceRoomLabel, isDoraShieldDevice } from "@/utils/device.utils";
@@ -70,14 +70,12 @@ export function DeviceManagementRow({
       </View>
 
       <View
-        className="h-7 w-7 items-center justify-center rounded-full border"
+        className="h-7 w-7 rounded-full border"
         style={{
           borderColor: selected ? COLORS.coral : COLORS.disabled,
           backgroundColor: selected ? COLORS.coral : "#FFFFFF",
         }}
-      >
-        {selected ? <Check size={18} color="#FFFFFF" strokeWidth={3} /> : null}
-      </View>
+      />
     </Pressable>
   );
 }

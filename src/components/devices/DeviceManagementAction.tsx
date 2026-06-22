@@ -25,8 +25,11 @@ export function DeviceManagementAction({
     >
       <Icon size={25} color={disabled ? COLORS.line : COLORS.text} />
       <Text
-        className="mt-2 text-center text-[13px] font-medium leading-4"
+        className="mt-2 text-center text-[12px] font-medium leading-4"
         style={{ color: disabled ? COLORS.line : COLORS.text }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.82}
       >
         {label}
       </Text>

@@ -201,7 +201,7 @@ export default function VoiceSettingsScreen() {
           <>
           <ScrollView
             className="flex-1 bg-white"
-            contentContainerClassName="pb-36"
+            contentContainerClassName="pb-60"
             showsVerticalScrollIndicator={false}
           >
             {/* Enable Voice */}

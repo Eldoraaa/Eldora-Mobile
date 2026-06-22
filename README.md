@@ -53,20 +53,7 @@ ELDORA Ecosystem
 └── 📱  Eldora-Mobile   — Caregiver dashboard (this repo)
 ```
 
-```mermaid
-flowchart LR
-    A[👴 Elderly User] -->|Voice / Activity| B[🤖 DoraBot\nESP32-S3]
-    B -->|Events & Telemetry| C[☁️ ELDORA Backend]
-    C -->|Push Notifications\nFCM| D[📱 Eldora-Mobile\nCaregiver App]
-    D -->|Caregiver Actions\nREST API| C
-    D -->|Local WiFi\nProvisioning| B
-    C -->|Analytics &\nSafety Summaries| D
-
-    style A fill:#f0fdf4,stroke:#86efac
-    style B fill:#eff6ff,stroke:#93c5fd
-    style C fill:#fef3c7,stroke:#fcd34d
-    style D fill:#fdf2f8,stroke:#f0abfc
-```
+<img src="./images/eldora-mobile-flowchart.png"/>
 
 ---
 
@@ -172,42 +159,7 @@ Eldora-Mobile/
 
 ## ⚙️ How the App Works
 
-```mermaid
-sequenceDiagram
-    participant C as 📱 Caregiver App
-    participant F as 🔥 Firebase
-    participant B as ☁️ ELDORA Backend
-    participant D as 🤖 DoraBot (Local)
-
-    C->>F: Sign in (email or Google)
-    F-->>C: ID token
-    C->>B: POST /auth/login { idToken }
-    B-->>C: JWT session token
-
-    C->>B: GET /home/homes
-    B-->>C: Home list
-
-    C->>D: Local hub discovery (LAN scan)
-    D-->>C: Provisioning info (deviceKey, IP)
-    C->>B: POST /devices/local-pair
-    B-->>C: Device paired / pending approval
-
-    C->>D: POST Wi-Fi credentials (local provisioning)
-    D-->>C: ACK — DoraBot connects to home Wi-Fi
-
-    loop Background — FCM
-        B->>F: Publish alert notification
-        F-->>C: FCM push message
-        C->>C: Show toast / critical alert modal
-    end
-
-    C->>B: GET /notifications
-    B-->>C: Alert history
-
-    C->>B: GET /scenes
-    B-->>C: Automation scenes
-    C->>B: POST /scenes/:id/run
-```
+<img src="./images/eldora-mobile-sequence.png"/>
 
 **In plain English:**
 ```
@@ -377,6 +329,6 @@ Have questions, want to collaborate, or interested in ELDORA?
 [![BINUS](https://img.shields.io/badge/BINUS%20University-BM%20Team-E7352C?style=for-the-badge)](https://binus.ac.id/)
 
 <br/>
-Made with 🤍 by **BINUS BM Team** 🔥
+Made with 🤍 by BINUS BM Team 🔥
 
 </div>

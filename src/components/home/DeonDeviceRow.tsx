@@ -27,7 +27,7 @@ export function DeonDeviceRow({
       onPress={onPress}
       disabled={!onPress}
       activeOpacity={0.78}
-      className="flex-row items-center px-8 py-6"
+      className="flex-row items-center py-6"
     >
       <View
         className="mr-5 h-[56px] w-[56px] items-center justify-center rounded-[20px]"

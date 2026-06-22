@@ -55,6 +55,7 @@ export default function HomeSettingsScreen() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   useEffect(() => {
     if (home?.name) setDraftHomeName(home.name);
@@ -135,31 +136,24 @@ export default function HomeSettingsScreen() {
 
   const leaveHome = () => {
     if (!currentMember || !home) return;
+    setShowLeaveModal(true);
+  };
 
-    Alert.alert(
-      "Leave home?",
-      `You will lose access to ${home.name}. You can only rejoin with a new invite.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Leave",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await removeHomeMemberMutation.mutateAsync(currentMember.id);
-              Toast.show({ type: "success", text1: "You left the home" });
-              router.replace("/home-management" as never);
-            } catch (error: any) {
-              Toast.show({
-                type: "error",
-                text1: "Could not leave home",
-                text2: error.response?.data?.message ?? "Please try again.",
-              });
-            }
-          },
-        },
-      ]
-    );
+  const confirmLeaveHome = async () => {
+    if (!currentMember) return;
+
+    try {
+      await removeHomeMemberMutation.mutateAsync(currentMember.id);
+      setShowLeaveModal(false);
+      Toast.show({ type: "success", text1: "You left the home" });
+      router.replace("/home-management" as never);
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not leave home",
+        text2: error.response?.data?.message ?? "Please try again.",
+      });
+    }
   };
 
   const isLoading = settingsQuery.isLoading || homesQuery.isLoading;
@@ -381,6 +375,48 @@ export default function HomeSettingsScreen() {
           onShare={shareInvite}
           isSharing={createInvitationMutation.isPending}
         />
+
+        <Modal transparent visible={showLeaveModal} animationType="fade" accessibilityViewIsModal onRequestClose={() => setShowLeaveModal(false)}>
+          <Pressable className="flex-1 justify-end bg-black/40" onPress={() => setShowLeaveModal(false)}>
+            <Pressable
+              className="rounded-t-[28px] bg-white px-7 pb-8 pt-7"
+              accessibilityRole="summary"
+              accessibilityLabel="Leave home confirmation"
+              onPress={(event) => event.stopPropagation()}
+            >
+              <View className="mb-5 h-1.5 w-12 self-center rounded-full bg-[#E8ECEF]" />
+              <Text className="text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+                Leave {home?.name ?? "home"}?
+              </Text>
+              <Text className="mt-2 text-[14px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                You will lose access to this home and its devices. You can only rejoin with a new invite.
+              </Text>
+              <View className="mt-7 flex-row gap-3">
+                <Pressable
+                  className="h-[52px] flex-1 items-center justify-center rounded-2xl border"
+                  style={{ borderColor: COLORS.line }}
+                  accessibilityRole="button"
+                  onPress={() => setShowLeaveModal(false)}
+                >
+                  <Text className="text-[15px] font-extrabold" style={{ color: COLORS.muted }}>
+                    Cancel
+                  </Text>
+                </Pressable>
+                <Pressable
+                  className="h-[52px] flex-1 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: COLORS.coral }}
+                  accessibilityRole="button"
+                  disabled={removeHomeMemberMutation.isPending}
+                  onPress={confirmLeaveHome}
+                >
+                  <Text className="text-[15px] font-extrabold text-white">
+                    {removeHomeMemberMutation.isPending ? "Leaving..." : "Leave Home"}
+                  </Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     </SafeAreaView>
   );

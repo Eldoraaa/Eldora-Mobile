@@ -51,10 +51,6 @@ export default function AccountSettingsScreen() {
             onPress={() => router.push("/notification-settings" as never)}
           />
           <SettingsRow
-            title="Elder Analytics"
-            onPress={() => router.push("/analytics" as never)}
-          />
-          <SettingsRow
             title="Clear Cache"
             value={cacheLabel}
             showChevron={false}

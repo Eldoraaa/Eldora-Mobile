@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   Pressable,
   ScrollView,
   Switch,
@@ -9,7 +8,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CheckCircle, Volume2 } from "lucide-react-native";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { Pause, Play, Volume2 } from "lucide-react-native";
 import Toast from "react-native-toast-message";
 import { useLocalSearchParams } from "expo-router";
 import { ScreenHeader } from "@/components/navigation/ScreenHeader";
@@ -77,11 +77,13 @@ function SelectRow({
           </Text>
         ) : null}
       </View>
-      {selected ? (
-        <CheckCircle size={22} color={COLORS.coral} strokeWidth={2.2} />
-      ) : (
-        <View className="h-[22px] w-[22px] rounded-full border-2" style={{ borderColor: COLORS.line }} />
-      )}
+      <View
+        className="h-[22px] w-[22px] rounded-full border-2"
+        style={{
+          backgroundColor: selected ? COLORS.coral : "transparent",
+          borderColor: selected ? COLORS.coral : COLORS.line,
+        }}
+      />
     </Pressable>
   );
 }
@@ -98,9 +100,13 @@ export default function VoiceSettingsScreen() {
   const configQuery = useDeviceVoiceConfigQuery(safeDeviceId);
   const updateMutation = useUpdateDeviceVoiceConfigMutation(safeDeviceId);
   const testAudioMutation = useDeviceVoiceTestAudioMutation();
+  const player = useAudioPlayer(null, { updateInterval: 500, downloadFirst: true });
+  const playerStatus = useAudioPlayerStatus(player);
 
   const cfg = configQuery.data;
   const [localEnabled, setLocalEnabled] = useState<boolean>(true);
+  const [previewText, setPreviewText] = useState("Tap Test Voice to preview the selected voice here.");
+  const [hasPreviewAudio, setHasPreviewAudio] = useState(false);
 
   useEffect(() => {
     if (cfg) setLocalEnabled(cfg.enabled);
@@ -133,11 +139,14 @@ export default function VoiceSettingsScreen() {
     if (!safeDeviceId) return;
     testAudioMutation.mutate(safeDeviceId, {
       onSuccess: (result) => {
+        setPreviewText(result.text);
         if (result.audioUrl) {
-          void Linking.openURL(result.audioUrl).catch(() => {
-            Toast.show({ type: "error", text1: "Could not open audio", text2: "Try again in a moment." });
-          });
+          player.replace(result.audioUrl);
+          player.seekTo(0);
+          player.play();
+          setHasPreviewAudio(true);
         } else {
+          setHasPreviewAudio(false);
           Toast.show({ type: "info", text1: "Voice test sent", text2: "DoraBot will speak in the elder's room." });
         }
       },
@@ -145,6 +154,19 @@ export default function VoiceSettingsScreen() {
         Toast.show({ type: "error", text1: "Test failed", text2: "Make sure DoraBot is online." });
       },
     });
+  };
+
+  const togglePreviewPlayback = () => {
+    if (!hasPreviewAudio) {
+      testVoice();
+      return;
+    }
+    if (playerStatus.playing) {
+      player.pause();
+      return;
+    }
+    player.seekTo(0);
+    player.play();
   };
 
   if (!safeDeviceId) {
@@ -176,9 +198,10 @@ export default function VoiceSettingsScreen() {
             <ActivityIndicator color={COLORS.coral} />
           </View>
         ) : (
+          <>
           <ScrollView
             className="flex-1 bg-white"
-            contentContainerClassName="pb-12"
+            contentContainerClassName="pb-36"
             showsVerticalScrollIndicator={false}
           >
             {/* Enable Voice */}
@@ -237,14 +260,29 @@ export default function VoiceSettingsScreen() {
             ))}
             <Divider />
 
-            {/* Test Voice */}
-            <SectionLabel>Preview</SectionLabel>
-            <View className="px-8">
+            {updateMutation.isPending ? (
+              <Text className="mt-6 text-center text-[12px]" style={{ color: COLORS.muted }}>
+                Saving changes...
+              </Text>
+            ) : null}
+          </ScrollView>
+
+          <View
+            className="absolute bottom-0 left-0 right-0 border-t bg-white px-6 pb-6 pt-4"
+            style={{ borderColor: COLORS.line }}
+          >
+            <View className="mb-3 rounded-[20px] px-4 py-3" style={{ backgroundColor: COLORS.surfaceMuted }}>
+              <Text className="text-[12px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                Voice preview
+              </Text>
+              <Text className="mt-1 text-[13px] font-semibold leading-5" style={{ color: COLORS.text }} numberOfLines={2}>
+                {previewText}
+              </Text>
+            </View>
+            <View className="flex-row gap-3">
               <Pressable
-                className="h-[56px] items-center justify-center rounded-2xl"
-                style={{
-                  backgroundColor: testAudioMutation.isPending ? COLORS.coralSoft : COLORS.coral,
-                }}
+                className="h-[56px] flex-1 flex-row items-center justify-center rounded-2xl"
+                style={{ backgroundColor: testAudioMutation.isPending ? COLORS.coralSoft : COLORS.coral }}
                 accessibilityRole="button"
                 accessibilityLabel="Test DoraBot voice"
                 disabled={testAudioMutation.isPending}
@@ -253,23 +291,28 @@ export default function VoiceSettingsScreen() {
                 {testAudioMutation.isPending ? (
                   <ActivityIndicator color={COLORS.coral} />
                 ) : (
-                  <Text className="text-[16px] font-extrabold text-white">Test Voice</Text>
+                  <>
+                    <Volume2 size={20} color="#fff" />
+                    <Text className="ml-2 text-[16px] font-extrabold text-white">Test Voice</Text>
+                  </>
                 )}
               </Pressable>
-              <Text
-                className="mt-3 text-center text-[13px] leading-5"
-                style={{ color: COLORS.muted }}
+              <Pressable
+                className="h-[56px] w-[56px] items-center justify-center rounded-2xl border"
+                style={{ borderColor: COLORS.line, backgroundColor: hasPreviewAudio ? COLORS.surfaceMuted : "#fff" }}
+                accessibilityRole="button"
+                accessibilityLabel={playerStatus.playing ? "Pause voice preview" : "Play voice preview"}
+                onPress={togglePreviewPlayback}
               >
-                Plays a sample phrase using the selected voice and speed.
-              </Text>
+                {playerStatus.playing ? (
+                  <Pause size={22} color={COLORS.coral} fill={COLORS.coral} />
+                ) : (
+                  <Play size={22} color={hasPreviewAudio ? COLORS.coral : COLORS.disabled} fill={hasPreviewAudio ? COLORS.coral : COLORS.disabled} />
+                )}
+              </Pressable>
             </View>
-
-            {updateMutation.isPending ? (
-              <Text className="mt-6 text-center text-[12px]" style={{ color: COLORS.muted }}>
-                Saving changes...
-              </Text>
-            ) : null}
-          </ScrollView>
+          </View>
+          </>
         )}
       </View>
     </SafeAreaView>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -14,6 +15,7 @@ import {
   ArrowUp,
   Eye,
   EyeOff,
+  Move,
   Router as RouterIcon,
   Trash2,
 } from "lucide-react-native";
@@ -22,6 +24,7 @@ import { DeviceManagementRow } from "@/components/devices/DeviceManagementRow";
 import {
   useDeleteDeviceMutation,
   useDevicesScreenQuery,
+  useRoomCategoriesQuery,
   useUpdateDeviceManagementMutation,
 } from "@/hooks/useDeviceQueries";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
@@ -33,6 +36,7 @@ export default function DeviceManagementScreen() {
   const goBack = useBackNavigation("/home");
   const { selectedHomeId } = useSelectedHome();
   const devicesScreenQuery = useDevicesScreenQuery(selectedHomeId);
+  const roomCategoriesQuery = useRoomCategoriesQuery(selectedHomeId);
   const updateDeviceManagementMutation = useUpdateDeviceManagementMutation();
   const deleteDeviceMutation = useDeleteDeviceMutation();
   const fetchedDevices = useMemo(
@@ -42,6 +46,8 @@ export default function DeviceManagementScreen() {
   const [devices, setDevices] = useState<EldoraDevice[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [roomAssignments, setRoomAssignments] = useState<Record<string, string | null>>({});
+  const [showRoomPicker, setShowRoomPicker] = useState(false);
   const hasSelection = selectedIds.size > 0;
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -58,10 +64,21 @@ export default function DeviceManagementScreen() {
   const selectedHidden = devices.some(
     (device) => selectedIds.has(device.id) && hiddenIds.has(device.id)
   );
+  const selectedRoomId = useMemo(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return undefined;
+    const first = roomAssignments[ids[0]] ?? null;
+    return ids.every((id) => (roomAssignments[id] ?? null) === first) ? first : undefined;
+  }, [roomAssignments, selectedIds]);
 
   useEffect(() => {
     setDevices(fetchedDevices);
     setHiddenIds(new Set(fetchedDevices.filter((device) => device.isHidden).map((device) => device.id)));
+    setRoomAssignments(
+      Object.fromEntries(
+        fetchedDevices.map((device) => [device.id, device.roomCategory?.id ?? null])
+      )
+    );
   }, [fetchedDevices]);
 
   const toggleSelected = (deviceId: string) => {
@@ -91,6 +108,28 @@ export default function DeviceManagementScreen() {
     });
   };
 
+  const changeSelectedRoom = (roomCategoryId: string | null) => {
+    setRoomAssignments((current) => {
+      const next = { ...current };
+      selectedIds.forEach((id) => {
+        next[id] = roomCategoryId;
+      });
+      return next;
+    });
+    setDevices((current) =>
+      current.map((device) =>
+        selectedIds.has(device.id)
+          ? {
+              ...device,
+              roomCategory:
+                roomCategoriesQuery.data?.find((room) => room.id === roomCategoryId) ?? null,
+            }
+          : device
+      )
+    );
+    setShowRoomPicker(false);
+  };
+
   const saveManagement = async () => {
     try {
       await updateDeviceManagementMutation.mutateAsync({
@@ -99,7 +138,7 @@ export default function DeviceManagementScreen() {
           id: device.id,
           sortOrder: index,
           isHidden: hiddenIds.has(device.id),
-          roomCategoryId: device.roomCategory?.id ?? null,
+          roomCategoryId: roomAssignments[device.id] ?? null,
         })),
       });
       goBack();
@@ -215,6 +254,57 @@ export default function DeviceManagementScreen() {
           </View>
         ) : null}
 
+        <Modal
+          transparent
+          visible={showRoomPicker}
+          animationType="fade"
+          accessibilityViewIsModal
+          onRequestClose={() => setShowRoomPicker(false)}
+        >
+          <Pressable className="flex-1 justify-end bg-black/45" onPress={() => setShowRoomPicker(false)}>
+            <Pressable
+              className="max-h-[78%] rounded-t-[28px] bg-white px-7 pb-8 pt-7"
+              accessibilityRole="summary"
+              accessibilityLabel="Select room"
+              onPress={(event) => event.stopPropagation()}
+            >
+              <View className="mb-5 h-1.5 w-12 self-center rounded-full bg-[#E8ECEF]" />
+              <View className="mb-4 flex-row items-center justify-between">
+                <View className="w-[62px]" />
+                <Text className="text-center text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+                  Select Room
+                </Text>
+                <Pressable className="h-10 w-[62px] items-end justify-center" onPress={() => setShowRoomPicker(false)}>
+                  <Text className="text-[16px] font-extrabold" style={{ color: COLORS.coral }}>Done</Text>
+                </Pressable>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Pressable className="flex-row items-center py-5" onPress={() => changeSelectedRoom(null)}>
+                  <Text className="flex-1 text-[20px] font-semibold" style={{ color: COLORS.text }}>
+                    Home level
+                  </Text>
+                  <View className="h-7 w-7 items-center justify-center rounded-full border-2" style={{ borderColor: selectedRoomId === null ? COLORS.coral : COLORS.disabled, backgroundColor: selectedRoomId === null ? COLORS.coral : "#fff" }}>
+                    {selectedRoomId === null ? <Text className="text-[15px] font-extrabold text-white">✓</Text> : null}
+                  </View>
+                </Pressable>
+                {(roomCategoriesQuery.data ?? []).filter((room) => room.slug !== "all").map((room) => {
+                  const selected = selectedRoomId === room.id;
+                  return (
+                    <Pressable key={room.id} className="flex-row items-center py-5" onPress={() => changeSelectedRoom(room.id)}>
+                      <Text className="flex-1 text-[20px] font-semibold" style={{ color: COLORS.text }}>
+                        {room.name}
+                      </Text>
+                      <View className="h-7 w-7 items-center justify-center rounded-full border-2" style={{ borderColor: selected ? COLORS.coral : COLORS.disabled, backgroundColor: selected ? COLORS.coral : "#fff" }}>
+                        {selected ? <Text className="text-[15px] font-extrabold text-white">✓</Text> : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
         {hasSelection && !confirmingDelete ? (
           <View className="h-[88px] flex-row items-center border-t border-[#F1F1F1] bg-white px-4">
             <DeviceManagementAction
@@ -222,6 +312,12 @@ export default function DeviceManagementScreen() {
               label="Move to Top"
               disabled={false}
               onPress={moveSelectedToTop}
+            />
+            <DeviceManagementAction
+              Icon={Move}
+              label="Change Room"
+              disabled={roomCategoriesQuery.isPending}
+              onPress={() => setShowRoomPicker(true)}
             />
             <DeviceManagementAction
               Icon={selectedHidden ? Eye : EyeOff}

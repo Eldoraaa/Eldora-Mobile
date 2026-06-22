@@ -6,6 +6,7 @@ export type ElderAnalyticsParams = {
   from?: string;
   to?: string;
   homeId?: string;
+  deviceId?: string;
 };
 
 export type VoicePerDay = {
@@ -56,6 +57,7 @@ export const analyticsApi = {
     if (params.from) query.set("from", params.from);
     if (params.to) query.set("to", params.to);
     if (params.homeId) query.set("homeId", params.homeId);
+    if (params.deviceId) query.set("deviceId", params.deviceId);
     const res = await apiClient.get(`/analytics/elder?${query.toString()}`);
     return (res.data as { data: ElderAnalyticsResult }).data;
   },

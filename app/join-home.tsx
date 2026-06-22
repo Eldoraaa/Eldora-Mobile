@@ -16,10 +16,12 @@ import { ArrowRight, ChevronLeft, HousePlus } from "lucide-react-native";
 import { COLORS } from "@/constants/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { useJoinHomeMutation } from "@/hooks/useHomeManagementQueries";
+import { useHomeStore } from "@/stores/homeStore";
 
 export default function JoinHomeScreen() {
   const goBack = useBackNavigation("/home-management");
   const joinHomeMutation = useJoinHomeMutation();
+  const setSelectedHomeId = useHomeStore((state) => state.setSelectedHomeId);
   const [inviteCode, setInviteCode] = useState("");
   const [isFocused, setIsFocused] = useState(false);
 
@@ -33,12 +35,13 @@ export default function JoinHomeScreen() {
       const home = await joinHomeMutation.mutateAsync({
         inviteCode: normalizedCode,
       });
+      setSelectedHomeId(home.id);
       Toast.show({
         type: "success",
         text1: "Home joined",
         text2: `${home.name} is now available.`,
       });
-      router.replace("/home-management");
+      router.replace("/home" as never);
     } catch (error: any) {
       Toast.show({
         type: "error",

@@ -1,17 +1,16 @@
 import React, { useMemo, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   Activity,
   Battery,
   Bell,
+  CalendarDays,
   ChevronRight,
   HeartPulse,
   LucideIcon,
-  Radio,
   Router as RouterIcon,
-  Settings2,
   ShieldAlert,
   ShieldCheck,
   Signal,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react-native";
 import { ScreenHeader } from "@/components/navigation/ScreenHeader";
 import { COLORS } from "@/constants/theme";
+import { useElderAnalyticsQuery } from "@/hooks/useAnalyticsQuery";
 import { useDevicesScreenQuery } from "@/hooks/useDeviceQueries";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { useSelectedHome } from "@/hooks/useSelectedHome";
@@ -151,16 +151,34 @@ function MiniTrend({ values, color }: { values: number[]; color: string }) {
 }
 
 const RANGE_OPTIONS = [
-  { days: 7, label: "7D" },
-  { days: 14, label: "14D" },
-  { days: 30, label: "30D" },
-  { days: 60, label: "60D" },
+  { value: "7d", label: "7D", days: 7 },
+  { value: "14d", label: "14D", days: 14 },
+  { value: "30d", label: "30D", days: 30 },
+  { value: "custom", label: "Custom", days: null },
 ] as const;
 
-type RangeDays = (typeof RANGE_OPTIONS)[number]["days"];
+type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
 
-function isoFromDaysAgo(days: number) {
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function dateFromDaysAgo(days: number) {
+  return toDateInputValue(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+}
+
+function shortDate(value: string) {
+  return new Date(value).toLocaleDateString("en", { month: "short", day: "numeric" });
+}
+
+function formatMs(ms: number | null) {
+  if (ms === null) return "—";
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+  return `${Math.round(ms / 60_000)}m`;
+}
+
+function readableLabel(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, " ");
 }
 
 const EMOTION_LABELS: Record<string, string> = {
@@ -175,6 +193,8 @@ const EMOTION_COLORS: Record<string, string> = {
   distressed: COLORS.coral,
   anxious: COLORS.warning,
   sad: "#6B9DD4",
+  happy: COLORS.success,
+  calm: "#3B82F6",
   positive: COLORS.success,
   neutral: COLORS.muted,
 };
@@ -197,13 +217,31 @@ function EmotionBar({ label, count, total, color }: { label: string; count: numb
 export default function DeviceDetailScreen() {
   const goBack = useBackNavigation("/home");
   const params = useLocalSearchParams<{ id?: string; homeId?: string }>();
-  const [selectedDays, setSelectedDays] = useState<RangeDays>(7);
+  const [selectedRange, setSelectedRange] = useState<RangeValue>("7d");
+  const [customFrom, setCustomFrom] = useState(dateFromDaysAgo(14));
+  const [customTo, setCustomTo] = useState(toDateInputValue(new Date()));
+  const [draftFrom, setDraftFrom] = useState(customFrom);
+  const [draftTo, setDraftTo] = useState(customTo);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+  const [showRangeModal, setShowRangeModal] = useState(false);
   const { selectedHomeId } = useSelectedHome();
   const homeId = params.homeId ?? selectedHomeId;
   const devicesQuery = useDevicesScreenQuery(homeId);
-  const startDateIso = isoFromDaysAgo(selectedDays);
+  const activeRange = useMemo(() => {
+    if (selectedRange === "custom") return { from: customFrom, to: customTo };
+    const option = RANGE_OPTIONS.find((item) => item.value === selectedRange);
+    return {
+      from: dateFromDaysAgo(option?.days ?? 7),
+      to: toDateInputValue(new Date()),
+    };
+  }, [customFrom, customTo, selectedRange]);
   const safetySummaryQuery = useSafetySummaryQuery(homeId);
-  const wellnessSummaryQuery = useWellnessSummaryQuery(homeId, startDateIso);
+  const wellnessSummaryQuery = useWellnessSummaryQuery(homeId, activeRange.from, activeRange.to);
+  const analyticsQuery = useElderAnalyticsQuery({
+    ...activeRange,
+    homeId: homeId ?? undefined,
+    deviceId: params.id,
+  });
   const device = devicesQuery.data?.devices.find((item) => item.id === params.id);
   const shield = device ? isDoraShieldDevice(device) : false;
   const title = device ? (shield ? "DoraShield" : "DoraBot") : "Device";
@@ -249,6 +287,37 @@ export default function DeviceDetailScreen() {
     signalScore || 58,
     wellnessSummary ? Math.max(12, 100 - wellnessSummary.distressScore) : 78,
   ];
+  const analyticsData = analyticsQuery.data;
+  const emotionTotal = analyticsData?.totals.voiceInteractions ?? 0;
+  const totalCritical = analyticsData ? analyticsData.totals.falls + analyticsData.totals.sos : 0;
+  const maxEmotionCount = Math.max(1, ...Object.values(analyticsData?.emotionTotals ?? {}));
+  const topIntents = Object.entries(analyticsData?.intentBreakdown ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  const openCustomRange = () => {
+    setDraftFrom(customFrom);
+    setDraftTo(customTo);
+    setRangeError(null);
+    setShowRangeModal(true);
+  };
+
+  const applyCustomRange = () => {
+    const fromTime = new Date(draftFrom).getTime();
+    const toTime = new Date(draftTo).getTime();
+    if (!draftFrom || !draftTo || Number.isNaN(fromTime) || Number.isNaN(toTime)) {
+      setRangeError("Use YYYY-MM-DD format.");
+      return;
+    }
+    if (fromTime > toTime) {
+      setRangeError("Start date must be before end date.");
+      return;
+    }
+    setCustomFrom(draftFrom);
+    setCustomTo(draftTo);
+    setSelectedRange("custom");
+    setShowRangeModal(false);
+  };
 
   if (!device) {
     return (
@@ -309,24 +378,39 @@ export default function DeviceDetailScreen() {
             </View>
           </View>
 
-          {/* Date range chips */}
-          <View className="mt-5 flex-row gap-2">
-            {RANGE_OPTIONS.map((opt) => {
-              const active = selectedDays === opt.days;
-              return (
-                <TouchableOpacity
-                  key={opt.days}
-                  className="h-9 flex-1 items-center justify-center rounded-full"
-                  style={{ backgroundColor: active ? COLORS.coral : COLORS.surfaceMuted }}
-                  activeOpacity={0.78}
-                  onPress={() => setSelectedDays(opt.days)}
-                >
-                  <Text className="text-[13px] font-extrabold" style={{ color: active ? "#fff" : COLORS.muted }}>
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View className="mt-5 rounded-[24px] border bg-white p-3" style={{ borderColor: COLORS.line }}>
+            <View className="mb-3 flex-row items-center justify-between px-1">
+              <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                Analytics range
+              </Text>
+              <Text className="text-[12px] font-bold" style={{ color: COLORS.text }}>
+                {shortDate(activeRange.from)} - {shortDate(activeRange.to)}
+              </Text>
+            </View>
+            <View className="flex-row gap-2">
+              {RANGE_OPTIONS.map((opt) => {
+                const active = selectedRange === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    className="h-10 flex-1 flex-row items-center justify-center rounded-full"
+                    style={{ backgroundColor: active ? COLORS.coral : COLORS.surfaceMuted }}
+                    activeOpacity={0.78}
+                    onPress={() => {
+                      if (opt.value === "custom") openCustomRange();
+                      else setSelectedRange(opt.value);
+                    }}
+                  >
+                    {opt.value === "custom" ? (
+                      <CalendarDays size={14} color={active ? "#fff" : COLORS.muted} />
+                    ) : null}
+                    <Text className="text-[13px] font-extrabold" style={{ color: active ? "#fff" : COLORS.muted, marginLeft: opt.value === "custom" ? 5 : 0 }}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
           <View className="mt-4 rounded-[24px] border bg-white p-5" style={{ borderColor: COLORS.line }}>
@@ -436,6 +520,91 @@ export default function DeviceDetailScreen() {
             )}
           </View>
 
+          {!shield ? (
+            <View className="mt-8 rounded-[26px] border bg-white p-5" style={{ borderColor: COLORS.line }}>
+              <View className="mb-4 flex-row items-start justify-between">
+                <View className="flex-1 pr-4">
+                  <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                    Elder analytics
+                  </Text>
+                  <Text className="mt-1 text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+                    {analyticsQuery.isLoading ? "Loading..." : `${emotionTotal} voice interaction${emotionTotal === 1 ? "" : "s"}`}
+                  </Text>
+                  <Text className="mt-1 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                    Per-device view for {device.name} during {shortDate(activeRange.from)} - {shortDate(activeRange.to)}.
+                  </Text>
+                </View>
+                <View className="h-[58px] w-[58px] items-center justify-center rounded-[20px]" style={{ backgroundColor: totalCritical > 0 ? COLORS.coralSoft : COLORS.surfaceMuted }}>
+                  <Text className="text-[19px] font-extrabold" style={{ color: totalCritical > 0 ? COLORS.coral : COLORS.success }}>
+                    {totalCritical}
+                  </Text>
+                  <Text className="text-[10px] font-bold uppercase" style={{ color: COLORS.muted }}>
+                    alerts
+                  </Text>
+                </View>
+              </View>
+
+              {analyticsData ? (
+                <>
+                  <View className="flex-row gap-3">
+                    <View className="flex-1 rounded-[20px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                      <Text className="text-[12px] font-bold" style={{ color: COLORS.muted }}>Avg response</Text>
+                      <Text className="mt-1 text-[20px] font-extrabold" style={{ color: COLORS.text }}>{formatMs(analyticsData.avgResponseTimeMs)}</Text>
+                    </View>
+                    <View className="flex-1 rounded-[20px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                      <Text className="text-[12px] font-bold" style={{ color: COLORS.muted }}>Voice latency</Text>
+                      <Text className="mt-1 text-[20px] font-extrabold" style={{ color: COLORS.text }}>{formatMs(analyticsData.avgVoiceLatencyMs)}</Text>
+                    </View>
+                  </View>
+
+                  {emotionTotal > 0 ? (
+                    <View className="mt-5">
+                      {Object.entries(analyticsData.emotionTotals)
+                        .filter(([, count]) => count > 0)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5)
+                        .map(([emotion, count]) => {
+                          const pct = Math.max(6, Math.round((count / maxEmotionCount) * 100));
+                          const color = EMOTION_COLORS[emotion] ?? COLORS.muted;
+                          return (
+                            <View key={emotion} className="mb-3">
+                              <View className="mb-1.5 flex-row items-center justify-between">
+                                <Text className="text-[13px] font-extrabold" style={{ color: COLORS.text }}>{readableLabel(emotion)}</Text>
+                                <Text className="text-[13px] font-bold" style={{ color: COLORS.muted }}>{count}</Text>
+                              </View>
+                              <View className="h-2.5 overflow-hidden rounded-full" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                                <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                              </View>
+                            </View>
+                          );
+                        })}
+                    </View>
+                  ) : (
+                    <Text className="mt-5 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                      No voice analytics recorded for this device in this range.
+                    </Text>
+                  )}
+
+                  {topIntents.length > 0 ? (
+                    <View className="mt-3 flex-row flex-wrap gap-2">
+                      {topIntents.map(([intent, count]) => (
+                        <View key={intent} className="rounded-full px-3 py-2" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                          <Text className="text-[12px] font-extrabold" style={{ color: COLORS.text }}>
+                            {readableLabel(intent)} · {count}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </>
+              ) : analyticsQuery.isLoading ? null : (
+                <Text className="text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                  No analytics available for this device yet.
+                </Text>
+              )}
+            </View>
+          ) : null}
+
           {!shield && wellnessSummary ? (
             <View className="mt-8 rounded-[24px] border bg-white p-5" style={{ borderColor: COLORS.line }}>
               <View className="mb-4 flex-row items-center justify-between">
@@ -529,14 +698,6 @@ export default function DeviceDetailScreen() {
                   Icon={Wifi}
                   onPress={() => router.push("/device-setup?type=dorabot" as never)}
                 />
-                <ActionRow
-                  title="Create DoraBot check-in scene"
-                  description="Make a tap-to-run scene that speaks through DoraBot."
-                  Icon={Radio}
-                  onPress={() =>
-                    router.push("/scene-builder?template=scheduled_check_in" as never)
-                  }
-                />
               </>
             ) : (
               <>
@@ -546,24 +707,92 @@ export default function DeviceDetailScreen() {
                   Icon={Bell}
                   onPress={() => router.push("/device-setup?type=dorashield" as never)}
                 />
-                <ActionRow
-                  title="Create fall response scene"
-                  description="Make an IF fall detected, THEN alert family rule."
-                  Icon={ShieldCheck}
-                  onPress={() =>
-                    router.push("/scene-builder?template=fall_response" as never)
-                  }
-                />
               </>
             )}
-            <ActionRow
-              title="Manage device"
-              description="Change room, order, visibility, or remove the device."
-              Icon={Settings2}
-              onPress={() => router.push("/device-management" as never)}
-            />
           </View>
         </ScrollView>
+
+        <Modal
+          transparent
+          visible={showRangeModal}
+          animationType="fade"
+          accessibilityViewIsModal
+          onRequestClose={() => setShowRangeModal(false)}
+        >
+          <Pressable className="flex-1 justify-end bg-black/40" onPress={() => setShowRangeModal(false)}>
+            <Pressable
+              className="rounded-t-[28px] bg-white px-7 pb-8 pt-7"
+              accessibilityRole="summary"
+              accessibilityLabel="Custom analytics range"
+              onPress={(event) => event.stopPropagation()}
+            >
+              <View className="mb-5 h-1.5 w-12 self-center rounded-full bg-[#E8ECEF]" />
+              <Text className="text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+                Custom range
+              </Text>
+              <Text className="mt-2 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                Pick the analytics period for this device. Use YYYY-MM-DD.
+              </Text>
+              <View className="mt-6 flex-row gap-3">
+                <View className="flex-1">
+                  <Text className="mb-2 text-[12px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                    From
+                  </Text>
+                  <TextInput
+                    value={draftFrom}
+                    onChangeText={setDraftFrom}
+                    placeholder="2026-06-01"
+                    placeholderTextColor={COLORS.disabled}
+                    className="h-[52px] rounded-[16px] border px-4 text-[15px] font-bold"
+                    style={{ borderColor: COLORS.line, color: COLORS.text }}
+                    autoCapitalize="none"
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="mb-2 text-[12px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                    To
+                  </Text>
+                  <TextInput
+                    value={draftTo}
+                    onChangeText={setDraftTo}
+                    placeholder="2026-06-22"
+                    placeholderTextColor={COLORS.disabled}
+                    className="h-[52px] rounded-[16px] border px-4 text-[15px] font-bold"
+                    style={{ borderColor: COLORS.line, color: COLORS.text }}
+                    autoCapitalize="none"
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+              </View>
+              {rangeError ? (
+                <Text className="mt-3 text-[13px] font-semibold" style={{ color: COLORS.coral }}>
+                  {rangeError}
+                </Text>
+              ) : null}
+              <View className="mt-7 flex-row gap-3">
+                <Pressable
+                  className="h-[52px] flex-1 items-center justify-center rounded-2xl border"
+                  style={{ borderColor: COLORS.line }}
+                  onPress={() => setShowRangeModal(false)}
+                >
+                  <Text className="text-[15px] font-extrabold" style={{ color: COLORS.muted }}>
+                    Cancel
+                  </Text>
+                </Pressable>
+                <Pressable
+                  className="h-[52px] flex-1 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: COLORS.coral }}
+                  onPress={applyCustomRange}
+                >
+                  <Text className="text-[15px] font-extrabold text-white">
+                    Apply
+                  </Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     </SafeAreaView>
   );

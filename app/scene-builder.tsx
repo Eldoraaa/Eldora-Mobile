@@ -46,17 +46,15 @@ type ActionOption = {
   target: "caregiver" | "dorabot" | "dorashield";
 };
 
-const RULE_OPTIONS: RuleOption[] = [
-  { label: "Fall detected", kind: "fall_detected", triggerType: "device_status_changes", deviceType: "dorashield" },
-  { label: "Device offline", kind: "device_offline", triggerType: "device_status_changes", deviceType: "any" },
-  { label: "Scheduled time", kind: "schedule", triggerType: "schedule", deviceType: "dorabot" },
-];
+const SCHEDULE_RULE: RuleOption = {
+  label: "Time reminder",
+  kind: "schedule",
+  triggerType: "schedule",
+  deviceType: "dorabot",
+};
 
 const ACTION_OPTIONS: ActionOption[] = [
-  { label: "Send push alert", type: "send_push_alert", target: "caregiver" },
   { label: "Speak on DoraBot", type: "speak_on_dorabot", target: "dorabot" },
-  { label: "Activate local alarm", type: "activate_local_alarm", target: "dorashield" },
-  { label: "Follow up if no response", type: "send_push_alert_if_no_response", target: "caregiver" },
 ];
 
 function deviceLooksLike(device: EldoraDevice, deviceName: string) {
@@ -162,38 +160,24 @@ export default function SceneBuilderScreen() {
   const [name, setName] = useState(template?.title ?? "");
   const [roomCategoryId, setRoomCategoryId] = useState<string | null>(null);
   const [deviceBindings, setDeviceBindings] = useState<Partial<Record<BindableDeviceType, string>>>({});
-  const [selectedRuleLabel, setSelectedRuleLabel] = useState<string | null>(null);
-  const [selectedActionTypes, setSelectedActionTypes] = useState<SceneActionType[]>([]);
+  const [selectedActionTypes, setSelectedActionTypes] = useState<SceneActionType[]>(["speak_on_dorabot"]);
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const [scheduleFrequency, setScheduleFrequency] = useState<"daily" | "weekly">("daily");
   const [scheduleWeekday, setScheduleWeekday] = useState(1);
-  const [actionTitle, setActionTitle] = useState("");
-  const [actionBody, setActionBody] = useState("");
   const [dorabotMessage, setDoraBotMessage] = useState("");
-  const [followUpDelay, setFollowUpDelay] = useState("15");
 
   useEffect(() => {
     setName(template?.title ?? "");
     setStep("setup");
-    const defaultRule = RULE_OPTIONS.find((rule) => rule.kind === template?.triggerConfig.condition?.kind) ?? RULE_OPTIONS[0];
-    setSelectedRuleLabel(defaultRule.label);
     setScheduleTime(template?.triggerConfig.condition?.schedule?.time ?? "09:00");
     setScheduleFrequency(template?.triggerConfig.condition?.schedule?.frequency ?? "daily");
     setScheduleWeekday(template?.triggerConfig.condition?.schedule?.weekday ?? 1);
-    setSelectedActionTypes((template?.actions.steps ?? []).map((action) => action.type === "dorabot_voice_check_in" ? "speak_on_dorabot" : action.type));
-    const firstNotification = template?.actions.steps.find((action) => action.type === "send_push_alert" || action.type === "send_push_alert_if_no_response");
+    setSelectedActionTypes(["speak_on_dorabot"]);
     const firstDoraBotMessage = template?.actions.steps.find((action) => action.type === "speak_on_dorabot" || action.type === "dorabot_voice_check_in");
-    const firstFollowUp = template?.actions.steps.find((action) => action.type === "send_push_alert_if_no_response");
-    setActionTitle(firstNotification?.title ?? template?.title ?? "Eldora alert");
-    setActionBody(firstNotification?.body ?? template?.description ?? "Please check Eldora immediately.");
-    setDoraBotMessage(firstDoraBotMessage?.message ?? "Your family is checking in. Are you feeling okay?");
-    setFollowUpDelay(String(firstFollowUp?.delayMinutes ?? 15));
+    setDoraBotMessage(firstDoraBotMessage?.message ?? "This is your reminder. Please take care of yourself.");
   }, [template]);
 
-  const selectedRule = useMemo(
-    () => RULE_OPTIONS.find((rule) => rule.label === selectedRuleLabel) ?? RULE_OPTIONS[0],
-    [selectedRuleLabel]
-  );
+  const selectedRule = SCHEDULE_RULE;
 
   const triggerDeviceNames = useMemo(() => {
     const names = new Set<string>();
@@ -267,52 +251,32 @@ export default function SceneBuilderScreen() {
     () => ({
       schemaVersion: 1 as const,
       condition: {
-        kind: selectedRule.kind,
-        deviceType: selectedRule.deviceType,
-        ...(selectedRule.kind === "device_offline" ? { durationMinutes: 10 } : {}),
-        ...(selectedRule.kind === "schedule"
-          ? {
-              schedule: {
-                frequency: scheduleFrequency,
-                time: scheduleTime,
-                ...(scheduleFrequency === "weekly" ? { weekday: scheduleWeekday } : {}),
-              },
-            }
-          : {}),
+        kind: "schedule" as const,
+        deviceType: "dorabot" as const,
+        schedule: {
+          frequency: scheduleFrequency,
+          time: scheduleTime,
+          ...(scheduleFrequency === "weekly" ? { weekday: scheduleWeekday } : {}),
+        },
       },
       ...(hasDeviceBindings ? { deviceBindings: cleanedDeviceBindings } : {}),
     }),
-    [cleanedDeviceBindings, hasDeviceBindings, scheduleTime, selectedRule]
+    [cleanedDeviceBindings, hasDeviceBindings, scheduleFrequency, scheduleTime, scheduleWeekday]
   );
 
   const draftActions = useMemo(
     () => ({
       schemaVersion: 1 as const,
-      steps: selectedActionTypes.map((type) => {
-        const option = ACTION_OPTIONS.find((item) => item.type === type) ?? ACTION_OPTIONS[0];
-        if (type === "send_push_alert" || type === "send_push_alert_if_no_response") {
-          return {
-            type,
-            target: option.target,
-            notificationType: selectedRule.kind === "fall_detected" ? "alarm" as const : selectedRule.kind === "device_offline" ? "device" as const : "home" as const,
-            title: actionTitle.trim() || option.label,
-            body: actionBody.trim() || "Please check Eldora immediately.",
-            severity: selectedRule.kind === "fall_detected" ? "critical" as const : selectedRule.kind === "device_offline" ? "warning" as const : "normal" as const,
-            ...(type === "send_push_alert_if_no_response" ? { delayMinutes: Number(followUpDelay) || 15 } : {}),
-          };
-        }
-        if (type === "speak_on_dorabot" || type === "dorabot_voice_check_in") {
-          return {
-            type,
-            target: option.target,
-            message: dorabotMessage.trim() || "Your family is checking in. Are you feeling okay?",
-          };
-        }
-        return { type, target: option.target };
-      }),
+      steps: [
+        {
+          type: "speak_on_dorabot" as const,
+          target: "dorabot" as const,
+          message: dorabotMessage.trim() || "This is your reminder. Please take care of yourself.",
+        },
+      ],
       ...(hasDeviceBindings ? { deviceBindings: cleanedDeviceBindings } : {}),
     }),
-    [actionBody, actionTitle, cleanedDeviceBindings, dorabotMessage, followUpDelay, hasDeviceBindings, selectedActionTypes, selectedRule.kind]
+    [cleanedDeviceBindings, dorabotMessage, hasDeviceBindings]
   );
 
   const selectedRoomName =
@@ -473,7 +437,7 @@ export default function SceneBuilderScreen() {
               </View>
 
               <Text className="mt-5 text-[14px] font-semibold leading-5" style={{ color: COLORS.muted }}>
-                The template will save its default IF/THEN rule. You can refine it after saving.
+                Set one time-based reminder. DoraBot will speak your message on the schedule you choose.
               </Text>
             </>
           ) : null}
@@ -551,187 +515,93 @@ export default function SceneBuilderScreen() {
                 <Pencil size={24} color={COLORS.disabled} />
               </View>
 
-              {template.triggerType !== "tap_to_run" ? (
-                <View className="mt-12">
-                  <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
-                    If
-                  </Text>
-                  <Text className="mt-2 text-[16px] font-semibold leading-6" style={{ color: COLORS.text }}>
-                    Choose what should trigger this scene.
-                  </Text>
-                  <View className="mt-5 flex-row flex-wrap gap-2">
-                    {RULE_OPTIONS.map((rule) => {
-                      const active = selectedRule.label === rule.label;
-                      return (
+              <View className="mt-12">
+                <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
+                  Schedule
+                </Text>
+                <Text className="mt-2 text-[16px] font-semibold leading-6" style={{ color: COLORS.text }}>
+                  Choose when DoraBot should speak this reminder.
+                </Text>
+                <View className="mt-5 gap-4">
+                  <View>
+                    <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                      Frequency
+                    </Text>
+                    <View className="flex-row gap-2">
+                      {(["daily", "weekly"] as const).map((freq) => (
                         <TouchableOpacity
-                          key={rule.label}
-                          className="rounded-full px-4 py-3"
-                          style={{ backgroundColor: active ? COLORS.coralSoft : COLORS.surfaceMuted }}
+                          key={freq}
+                          className="rounded-full px-5 py-3"
+                          style={{ backgroundColor: scheduleFrequency === freq ? COLORS.coralSoft : COLORS.surfaceMuted }}
                           activeOpacity={0.78}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: active }}
-                          onPress={() => setSelectedRuleLabel(rule.label)}
+                          onPress={() => setScheduleFrequency(freq)}
                         >
-                          <Text className="text-[13px] font-extrabold" style={{ color: active ? COLORS.coral : COLORS.text }}>
-                            {rule.label}
+                          <Text className="text-[13px] font-extrabold capitalize" style={{ color: scheduleFrequency === freq ? COLORS.coral : COLORS.text }}>
+                            {freq}
                           </Text>
                         </TouchableOpacity>
-                      );
-                    })}
+                      ))}
+                    </View>
                   </View>
-                  {selectedRule.kind === "schedule" ? (
-                    <View className="mt-5 gap-4">
-                      <View>
-                        <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                          Frequency
-                        </Text>
+                  {scheduleFrequency === "weekly" ? (
+                    <View>
+                      <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                        Day
+                      </Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <View className="flex-row gap-2">
-                          {(["daily", "weekly"] as const).map((freq) => (
+                          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
                             <TouchableOpacity
-                              key={freq}
-                              className="rounded-full px-5 py-3"
-                              style={{ backgroundColor: scheduleFrequency === freq ? COLORS.coralSoft : COLORS.surfaceMuted }}
+                              key={day}
+                              className="h-[42px] w-[42px] items-center justify-center rounded-full"
+                              style={{ backgroundColor: scheduleWeekday === index ? COLORS.coral : COLORS.surfaceMuted }}
                               activeOpacity={0.78}
-                              onPress={() => setScheduleFrequency(freq)}
+                              onPress={() => setScheduleWeekday(index)}
                             >
-                              <Text className="text-[13px] font-extrabold capitalize" style={{ color: scheduleFrequency === freq ? COLORS.coral : COLORS.text }}>
-                                {freq}
+                              <Text className="text-[12px] font-extrabold" style={{ color: scheduleWeekday === index ? "white" : COLORS.text }}>
+                                {day}
                               </Text>
                             </TouchableOpacity>
                           ))}
                         </View>
-                      </View>
-                      {scheduleFrequency === "weekly" ? (
-                        <View>
-                          <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                            Day
-                          </Text>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            <View className="flex-row gap-2">
-                              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
-                                <TouchableOpacity
-                                  key={day}
-                                  className="h-[42px] w-[42px] items-center justify-center rounded-full"
-                                  style={{ backgroundColor: scheduleWeekday === index ? COLORS.coral : COLORS.surfaceMuted }}
-                                  activeOpacity={0.78}
-                                  onPress={() => setScheduleWeekday(index)}
-                                >
-                                  <Text className="text-[12px] font-extrabold" style={{ color: scheduleWeekday === index ? "white" : COLORS.text }}>
-                                    {day}
-                                  </Text>
-                                </TouchableOpacity>
-                              ))}
-                            </View>
-                          </ScrollView>
-                        </View>
-                      ) : null}
-                      <View>
-                        <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
-                          Time (HH:MM)
-                        </Text>
-                        <TextInput
-                          value={scheduleTime}
-                          onChangeText={setScheduleTime}
-                          placeholder="09:00"
-                          placeholderTextColor={COLORS.disabled}
-                          className="h-[50px] rounded-[12px] border px-4 text-[16px] font-semibold"
-                          style={{ borderColor: COLORS.line, color: COLORS.text }}
-                          accessibilityLabel="Schedule time"
-                          returnKeyType="done"
-                        />
-                      </View>
+                      </ScrollView>
                     </View>
                   ) : null}
+                  <View>
+                    <Text className="mb-2 text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                      Time (HH:MM)
+                    </Text>
+                    <TextInput
+                      value={scheduleTime}
+                      onChangeText={setScheduleTime}
+                      placeholder="09:00"
+                      placeholderTextColor={COLORS.disabled}
+                      className="h-[50px] rounded-[12px] border px-4 text-[16px] font-semibold"
+                      style={{ borderColor: COLORS.line, color: COLORS.text }}
+                      accessibilityLabel="Schedule time"
+                      returnKeyType="done"
+                    />
+                  </View>
                 </View>
-              ) : (
-                <View className="mt-12 rounded-[18px] px-4 py-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
-                  <Text className="text-[15px] font-extrabold" style={{ color: COLORS.text }}>
-                    Triggered by tap
-                  </Text>
-                  <Text className="mt-1 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
-                    This scene runs instantly when you press Run from the scene list.
-                  </Text>
-                </View>
-              )}
+              </View>
 
               <View className="mt-12">
                 <Text className="text-[24px] font-extrabold leading-8" style={{ color: COLORS.text }}>
-                  Then
+                  Message
                 </Text>
                 <Text className="mt-2 text-[16px] font-semibold leading-6" style={{ color: COLORS.text }}>
-                  Choose one or more actions.
+                  Write what DoraBot should say at the scheduled time.
                 </Text>
-                <View className="mt-5 flex-row flex-wrap gap-2">
-                  {ACTION_OPTIONS.map((action) => {
-                    const active = selectedActionTypes.includes(action.type);
-                    return (
-                      <TouchableOpacity
-                        key={action.type}
-                        className="rounded-full px-4 py-3"
-                        style={{ backgroundColor: active ? COLORS.coralSoft : COLORS.surfaceMuted }}
-                        activeOpacity={0.78}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        onPress={() =>
-                          setSelectedActionTypes((current) =>
-                            active ? current.filter((type) => type !== action.type) : [...current, action.type]
-                          )
-                        }
-                      >
-                        <Text className="text-[13px] font-extrabold" style={{ color: active ? COLORS.coral : COLORS.text }}>
-                          {action.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                {selectedActionTypes.some((type) => type === "send_push_alert" || type === "send_push_alert_if_no_response") ? (
-                  <View className="mt-5 gap-3">
-                    <TextInput
-                      value={actionTitle}
-                      onChangeText={setActionTitle}
-                      placeholder="Notification title"
-                      placeholderTextColor={COLORS.disabled}
-                      className="h-[50px] rounded-[12px] border px-4 text-[15px] font-semibold"
-                      style={{ borderColor: COLORS.line, color: COLORS.text }}
-                      accessibilityLabel="Notification title"
-                    />
-                    <TextInput
-                      value={actionBody}
-                      onChangeText={setActionBody}
-                      placeholder="Notification body"
-                      placeholderTextColor={COLORS.disabled}
-                      className="min-h-[72px] rounded-[12px] border px-4 py-3 text-[15px] font-semibold"
-                      style={{ borderColor: COLORS.line, color: COLORS.text, textAlignVertical: "top" }}
-                      accessibilityLabel="Notification body"
-                      multiline
-                    />
-                  </View>
-                ) : null}
-                {selectedActionTypes.includes("speak_on_dorabot") ? (
-                  <TextInput
-                    value={dorabotMessage}
-                    onChangeText={setDoraBotMessage}
-                    placeholder="What should DoraBot say?"
-                    placeholderTextColor={COLORS.disabled}
-                    className="mt-5 min-h-[72px] rounded-[12px] border px-4 py-3 text-[15px] font-semibold"
-                    style={{ borderColor: COLORS.line, color: COLORS.text, textAlignVertical: "top" }}
-                    accessibilityLabel="DoraBot speech message"
-                    multiline
-                  />
-                ) : null}
-                {selectedActionTypes.includes("send_push_alert_if_no_response") ? (
-                  <TextInput
-                    value={followUpDelay}
-                    onChangeText={setFollowUpDelay}
-                    placeholder="Follow-up delay in minutes"
-                    placeholderTextColor={COLORS.disabled}
-                    keyboardType="number-pad"
-                    className="mt-5 h-[50px] rounded-[12px] border px-4 text-[15px] font-semibold"
-                    style={{ borderColor: COLORS.line, color: COLORS.text }}
-                    accessibilityLabel="Follow-up delay in minutes"
-                  />
-                ) : null}
+                <TextInput
+                  value={dorabotMessage}
+                  onChangeText={setDoraBotMessage}
+                  placeholder="What should DoraBot say?"
+                  placeholderTextColor={COLORS.disabled}
+                  className="mt-5 min-h-[92px] rounded-[16px] border px-4 py-3 text-[15px] font-semibold"
+                  style={{ borderColor: COLORS.line, color: COLORS.text, textAlignVertical: "top" }}
+                  accessibilityLabel="DoraBot speech message"
+                  multiline
+                />
               </View>
 
               <View className="mt-10">

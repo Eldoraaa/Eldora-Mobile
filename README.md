@@ -15,7 +15,7 @@
 
 **The caregiver-facing mobile app for the ELDORA ecosystem — handling multi-home management, DoraBot pairing and Wi-Fi provisioning, real-time fall and safety alerts, scene automation, voice configuration, and elder analytics.**
 
-[🌐 ELDORA Ecosystem](https://github.com/eldora-bm) · [🤖 DoraBot](https://github.com/eldora-bm/dorabot) · [🛡️ DoraShield](https://github.com/eldora-bm/dorashield) · [☁️ Backend](https://github.com/eldora-bm/eldora-backend)
+[🌐 ELDORA Ecosystem](https://github.com/Eldoraaa) · [🤖 DoraBot](https://github.com/Eldoraaa/dorabot) · [🛡️ DoraShield](https://github.com/Eldoraaa/dorashield) · [☁️ Backend](https://github.com/Eldoraaa/eldora-backend)
 
 </div>
 
@@ -217,7 +217,7 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/eldora-bm/eldora-mobile.git
+git clone https://github.com/Eldoraaa/eldora-mobile.git
 cd eldora-mobile
 
 # 2. Install dependencies

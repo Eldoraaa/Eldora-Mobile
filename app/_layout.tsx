@@ -192,16 +192,14 @@ function RootLayoutContent() {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
       void queryClient.invalidateQueries({ queryKey: ["home", "safety-summary"] });
       void queryClient.invalidateQueries({ queryKey: ["home", "wellness-summary"] });
-      if (message.data?.severity === "critical") {
-        void Notifications.scheduleNotificationAsync({
-          content: {
-            title: message.notification?.title ?? "Critical Eldora alert",
-            body: message.notification?.body ?? "Tap to review the alert.",
-            data: message.data,
-          },
-          trigger: null,
-        });
-      }
+      void Notifications.scheduleNotificationAsync({
+        content: {
+          title: message.notification?.title ?? "New Eldora alert",
+          body: message.notification?.body ?? "Tap to review the alert.",
+          data: message.data,
+        },
+        trigger: null,
+      });
       Toast.show({
         type: message.data?.severity === "critical" ? "error" : "success",
         text1: message.notification?.title ?? "New Eldora alert",

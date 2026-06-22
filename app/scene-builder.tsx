@@ -20,7 +20,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock3,
-  Pencil,
   Router,
   ShieldCheck,
 } from "lucide-react-native";
@@ -180,7 +179,7 @@ export default function SceneBuilderScreen() {
   const [selectedActionTypes, setSelectedActionTypes] = useState<SceneActionType[]>(["speak_on_dorabot"]);
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const [scheduleFrequency, setScheduleFrequency] = useState<"daily" | "weekly">("daily");
-  const [scheduleWeekday, setScheduleWeekday] = useState(1);
+  const [scheduleWeekdays, setScheduleWeekdays] = useState<number[]>([1]);
   const [dorabotMessage, setDoraBotMessage] = useState("");
 
   useEffect(() => {
@@ -188,7 +187,8 @@ export default function SceneBuilderScreen() {
     setStep("setup");
     setScheduleTime(template?.triggerConfig.condition?.schedule?.time ?? "09:00");
     setScheduleFrequency(template?.triggerConfig.condition?.schedule?.frequency ?? "daily");
-    setScheduleWeekday(template?.triggerConfig.condition?.schedule?.weekday ?? 1);
+    const templateSchedule = template?.triggerConfig.condition?.schedule;
+    setScheduleWeekdays(templateSchedule?.weekdays?.length ? templateSchedule.weekdays : [templateSchedule?.weekday ?? 1]);
     setSelectedActionTypes(["speak_on_dorabot"]);
     const firstDoraBotMessage = template?.actions.steps.find((action) => action.type === "speak_on_dorabot" || action.type === "dorabot_voice_check_in");
     setDoraBotMessage(firstDoraBotMessage?.message ?? "This is your reminder. Please take care of yourself.");
@@ -273,12 +273,12 @@ export default function SceneBuilderScreen() {
         schedule: {
           frequency: scheduleFrequency,
           time: scheduleTime,
-          ...(scheduleFrequency === "weekly" ? { weekday: scheduleWeekday } : {}),
+          ...(scheduleFrequency === "weekly" ? { weekday: scheduleWeekdays[0] ?? 1, weekdays: scheduleWeekdays } : {}),
         },
       },
       ...(hasDeviceBindings ? { deviceBindings: cleanedDeviceBindings } : {}),
     }),
-    [cleanedDeviceBindings, hasDeviceBindings, scheduleFrequency, scheduleTime, scheduleWeekday]
+    [cleanedDeviceBindings, hasDeviceBindings, scheduleFrequency, scheduleTime, scheduleWeekdays]
   );
 
   const draftActions = useMemo(
@@ -298,7 +298,12 @@ export default function SceneBuilderScreen() {
 
   const preconditionLabel = scheduleFrequency === "daily"
     ? "Every day"
-    : `Every ${WEEKDAYS.find((day) => day.value === scheduleWeekday)?.label ?? "week"}`;
+    : scheduleWeekdays.length === 7
+      ? "Every day"
+      : scheduleWeekdays
+          .map((value) => WEEKDAYS.find((day) => day.value === value)?.label)
+          .filter(Boolean)
+          .join(", ");
 
   const handleBack = () => {
     if (step === "rule") {
@@ -528,7 +533,6 @@ export default function SceneBuilderScreen() {
                 <Text className="flex-1 text-[28px] font-extrabold leading-9" style={{ color: COLORS.text }}>
                   {name.trim() || template.title}
                 </Text>
-                <Pencil size={24} color={COLORS.disabled} />
               </View>
 
               <View className="mt-12">
@@ -628,22 +632,47 @@ export default function SceneBuilderScreen() {
               </View>
 
               {scheduleFrequency === "weekly" ? (
-                <View className="mt-6 flex-row flex-wrap justify-between gap-y-3">
-                  {WEEKDAYS.map((day) => {
-                    const active = scheduleWeekday === day.value;
-                    return (
-                      <Pressable
-                        key={day.value}
-                        className="h-[52px] w-[30%] items-center justify-center rounded-[18px] border"
-                        style={{ borderColor: active ? COLORS.coral : COLORS.line, backgroundColor: active ? COLORS.coral : "#fff" }}
-                        onPress={() => setScheduleWeekday(day.value)}
-                      >
-                        <Text className="text-[15px] font-extrabold" style={{ color: active ? "#fff" : COLORS.text }}>
-                          {day.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                <View className="mt-6">
+                  <View className="mb-3 flex-row items-center justify-between">
+                    <Text className="text-[12px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                      Repeat on
+                    </Text>
+                    <Pressable onPress={() => setScheduleWeekdays(WEEKDAYS.map((day) => day.value))}>
+                      <Text className="text-[12px] font-extrabold" style={{ color: COLORS.coral }}>
+                        Select all
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View className="gap-2">
+                    {WEEKDAYS.map((day) => {
+                      const active = scheduleWeekdays.includes(day.value);
+                      return (
+                        <Pressable
+                          key={day.value}
+                          className="flex-row items-center rounded-[18px] border px-4 py-3"
+                          style={{ borderColor: active ? COLORS.coral : COLORS.line, backgroundColor: active ? COLORS.coralSoft : "#fff" }}
+                          onPress={() =>
+                            setScheduleWeekdays((current) => {
+                              if (active && current.length === 1) return current;
+                              return active
+                                ? current.filter((value) => value !== day.value)
+                                : [...current, day.value].sort((a, b) => a - b);
+                            })
+                          }
+                        >
+                          <View
+                            className="mr-3 h-6 w-6 items-center justify-center rounded-full border-2"
+                            style={{ borderColor: active ? COLORS.coral : COLORS.disabled, backgroundColor: active ? COLORS.coral : "#fff" }}
+                          >
+                            {active ? <CheckCircle2 size={14} color="#fff" fill="#fff" /> : null}
+                          </View>
+                          <Text className="flex-1 text-[15px] font-extrabold" style={{ color: COLORS.text }}>
+                            {day.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
               ) : null}
 

@@ -112,10 +112,10 @@ export default function SceneScreen() {
                   setShowHomeMenu(false);
                   setShowDeviceMenu((value) => !value);
                 }}
-                className="h-9 w-9 items-center justify-center rounded-full bg-[#D95545]"
+                className="h-10 w-10 items-center justify-center rounded-full bg-[#D95545]"
                 activeOpacity={0.82}
               >
-                <Plus size={22} color="#FFFFFF" />
+                <Plus size={25} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>

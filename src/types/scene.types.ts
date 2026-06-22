@@ -35,6 +35,7 @@ export type SceneTriggerConfig = {
       frequency: "daily" | "weekly";
       time: string;
       weekday?: number;
+      weekdays?: number[];
     };
   };
   conditions?: Array<NonNullable<SceneTriggerConfig["condition"]>>;

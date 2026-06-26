@@ -288,6 +288,9 @@ function RootLayoutContent() {
           <Stack.Screen name="home" options={{ animation: "none" }} />
           <Stack.Screen name="alerts" options={{ animation: "none" }} />
           <Stack.Screen name="alert-detail" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="reminders" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="reminder-detail" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="memory-review" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="add-device" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="device-setup" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="device-detail" options={{ animation: "slide_from_right" }} />

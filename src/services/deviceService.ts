@@ -71,7 +71,7 @@ function isEldoraHub(value: unknown): value is Omit<LocalProvisioningInfo, "ipAd
   return (
     (productName === "ELDORA_CARE" ||
       (typeof productName === "string" && productName.includes("ELDORA")) ||
-      (typeof setupSsid === "string" && setupSsid.startsWith("ELDORA-SETUP-")) ||
+      (typeof setupSsid === "string" && (setupSsid.startsWith("ELDORA-SETUP-") || setupSsid.startsWith("ELDORA-SHIELD-"))) ||
       typeof maybeHub.deviceKey === "string") &&
     typeof maybeHub.deviceKey === "string" &&
     typeof maybeHub.pairingToken === "string"

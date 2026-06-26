@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
-import { Home, Settings } from "lucide-react-native";
+import { Brain, Home, Settings } from "lucide-react-native";
 import { MainTabScreen } from "@/components/navigation/MainTabScreen";
 import { MeMenuRow } from "@/components/settings/MeMenuRow";
 import { useAuthStore } from "@/stores/authStore";
@@ -61,6 +61,11 @@ export default function SettingsScreen() {
               icon={<Home size={23} color={COLORS.text} />}
               title="Home Management"
               onPress={() => router.push("/home-management" as never)}
+            />
+            <MeMenuRow
+              icon={<Brain size={23} color={COLORS.text} />}
+              title="Memory Review"
+              onPress={() => router.push("/memory-review" as never)}
             />
           </View>
         </ScrollView>

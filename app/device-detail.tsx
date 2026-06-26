@@ -22,6 +22,7 @@ import { ScreenHeader } from "@/components/navigation/ScreenHeader";
 import { COLORS } from "@/constants/theme";
 import { useElderAnalyticsQuery } from "@/hooks/useAnalyticsQuery";
 import { useDevicesScreenQuery } from "@/hooks/useDeviceQueries";
+import { useDeviceTelemetry } from "@/hooks/useDeviceTelemetry";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { useSelectedHome } from "@/hooks/useSelectedHome";
 import { useSafetySummaryQuery, useWellnessSummaryQuery } from "@/hooks/useHomeManagementQueries";
@@ -331,6 +332,7 @@ export default function DeviceDetailScreen() {
     deviceId: params.id,
   });
   const device = devicesQuery.data?.devices.find((item) => item.id === params.id);
+  const liveTelemetry = useDeviceTelemetry(device?.id, homeId);
   const shield = device ? isDoraShieldDevice(device) : false;
   const title = device ? (shield ? "DoraShield" : "DoraBot") : "Device";
   const Icon = shield ? ShieldCheck : RouterIcon;
@@ -366,6 +368,11 @@ export default function DeviceDetailScreen() {
     wellnessSummary ? Math.max(12, 100 - wellnessSummary.distressScore) : 78,
   ];
   const analyticsData = analyticsQuery.data;
+  const livePayload = liveTelemetry?.payload ?? {};
+  const livePeakAcceleration = typeof livePayload.peakAcceleration === "number" ? livePayload.peakAcceleration : null;
+  const liveMotionLevel = typeof livePayload.motionLevel === "string" ? livePayload.motionLevel : "waiting";
+  const liveSensorStatus = typeof livePayload.sensorStatus === "string" ? livePayload.sensorStatus : "waiting";
+  const liveImpactSeverity = typeof livePayload.impactSeverity === "string" ? livePayload.impactSeverity : "none";
   const emotionTotal = analyticsData?.totals.voiceInteractions ?? 0;
   const totalCritical = analyticsData ? analyticsData.totals.falls + analyticsData.totals.sos : 0;
   const maxEmotionCount = Math.max(1, ...Object.values(analyticsData?.emotionTotals ?? {}));
@@ -601,6 +608,49 @@ export default function DeviceDetailScreen() {
               </View>
             </View>
           </View>
+
+          {shield ? (
+            <View className="mt-8 rounded-[26px] border bg-white p-5" style={{ borderColor: COLORS.line }}>
+              <View className="mb-4 flex-row items-start justify-between">
+                <View className="flex-1 pr-4">
+                  <Text className="text-[13px] font-extrabold uppercase" style={{ color: COLORS.muted }}>
+                    Live safety telemetry
+                  </Text>
+                  <Text className="mt-1 text-[22px] font-extrabold" style={{ color: COLORS.text }}>
+                    {liveTelemetry ? "Streaming now" : "Waiting for stream"}
+                  </Text>
+                  <Text className="mt-1 text-[13px] font-semibold leading-5" style={{ color: COLORS.muted }}>
+                    Realtime DoraShield motion and sensor metrics from WebSocket.
+                  </Text>
+                </View>
+                <View className="h-[58px] w-[58px] items-center justify-center rounded-[20px]" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                  <Activity size={25} color={liveTelemetry ? COLORS.success : COLORS.disabled} />
+                </View>
+              </View>
+              <View className="flex-row flex-wrap gap-3">
+                <View className="min-w-[46%] flex-1 rounded-[20px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                  <Text className="text-[12px] font-bold" style={{ color: COLORS.muted }}>Peak acceleration</Text>
+                  <Text className="mt-1 text-[20px] font-extrabold" style={{ color: COLORS.text }}>
+                    {livePeakAcceleration === null ? "--" : `${livePeakAcceleration.toFixed(2)}g`}
+                  </Text>
+                </View>
+                <View className="min-w-[46%] flex-1 rounded-[20px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                  <Text className="text-[12px] font-bold" style={{ color: COLORS.muted }}>Motion level</Text>
+                  <Text className="mt-1 text-[20px] font-extrabold" style={{ color: COLORS.text }}>{readableLabel(liveMotionLevel)}</Text>
+                </View>
+                <View className="min-w-[46%] flex-1 rounded-[20px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                  <Text className="text-[12px] font-bold" style={{ color: COLORS.muted }}>Impact</Text>
+                  <Text className="mt-1 text-[20px] font-extrabold" style={{ color: liveImpactSeverity === "critical" || liveImpactSeverity === "high" ? COLORS.coral : COLORS.text }}>
+                    {readableLabel(liveImpactSeverity)}
+                  </Text>
+                </View>
+                <View className="min-w-[46%] flex-1 rounded-[20px] p-4" style={{ backgroundColor: COLORS.surfaceMuted }}>
+                  <Text className="text-[12px] font-bold" style={{ color: COLORS.muted }}>Sensor</Text>
+                  <Text className="mt-1 text-[20px] font-extrabold" style={{ color: liveSensorStatus === "ok" ? COLORS.success : COLORS.text }}>{readableLabel(liveSensorStatus)}</Text>
+                </View>
+              </View>
+            </View>
+          ) : null}
 
           {!shield ? (
             <View className="mt-8 rounded-[26px] border bg-white p-5" style={{ borderColor: COLORS.line }}>

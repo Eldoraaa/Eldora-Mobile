@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -54,6 +55,7 @@ export default function AddDeviceScreen() {
   const [nearbyHubs, setNearbyHubs] = useState<LocalProvisioningInfo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isWifiOn, setIsWifiOn] = useState<boolean | null>(null);
+  const [elderName, setElderName] = useState("");
   const { selectedHomeId } = useSelectedHome();
   const devicesQuery = useDevicesScreenQuery(selectedHomeId);
   const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
@@ -140,12 +142,22 @@ export default function AddDeviceScreen() {
   }, []);
 
   const pairHub = async (hub: LocalProvisioningInfo) => {
+    const trimmedElderName = elderName.trim();
+    if (!trimmedElderName) {
+      Toast.show({
+        type: "error",
+        text1: "Elder name required",
+        text2: "Add the elder's preferred name before pairing.",
+      });
+      return;
+    }
+
     try {
       const result = await pairLocalDeviceMutation.mutateAsync({
         deviceKey: hub.deviceKey,
         pairingToken: hub.pairingToken,
         localIp: hub.ipAddress,
-        elderName: "Eldora User",
+        elderName: trimmedElderName,
         deviceName: "DoraBot",
         homeId: selectedHomeId,
         batteryLevel: hub.batteryLevel ?? undefined,
@@ -223,7 +235,22 @@ export default function AddDeviceScreen() {
 
           {nearbyHubs.length > 0 ? (
             <View className="mt-8">
-              <Text className="px-8 text-[15px] font-extrabold uppercase text-[#5F6B7A]">
+              <View className="mx-5 rounded-[24px] border border-[#F1F1F1] bg-white px-5 py-4">
+                <Text className="text-[13px] font-extrabold uppercase tracking-[1.2px] text-[#8A8A8A]">
+                  Elder preferred name
+                </Text>
+                <TextInput
+                  className="mt-3 text-[18px] font-bold text-[#17202A]"
+                  value={elderName}
+                  onChangeText={setElderName}
+                  placeholder="e.g. Pak Budi"
+                  placeholderTextColor="#B8BFC5"
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  accessibilityLabel="Elder preferred name"
+                />
+              </View>
+              <Text className="mt-8 px-8 text-[15px] font-extrabold uppercase text-[#5F6B7A]">
                 Nearby devices
               </Text>
               {nearbyHubs.map((hub) => (

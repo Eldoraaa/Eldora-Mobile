@@ -4,6 +4,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,20 +19,29 @@ import {
 } from "lucide-react-native";
 import { NearbyHubRow } from "@/components/devices/NearbyHubRow";
 import { ScanningRadar } from "@/components/devices/ScanningRadar";
+import { WifiConfigModal } from "@/components/devices/WifiConfigModal";
 import {
   useDevicesScreenQuery,
   useDiscoverLocalHubsMutation,
   usePairLocalDeviceMutation,
+  useProvisionLocalWifiMutation,
+  useScanLocalWifiNetworksMutation,
 } from "@/hooks/useDeviceQueries";
 import { COLORS } from "@/constants/theme";
 import { useSelectedHome } from "@/hooks/useSelectedHome";
-import { LocalProvisioningInfo } from "@/types/device.types";
+import { LocalProvisioningInfo, WifiNetwork } from "@/types/device.types";
 
 type SetupType = "dorabot" | "dorashield";
 type SetupPhase = "guide" | "searching" | "found" | "not-found";
 
 function isAlreadyPairedHub(hub: LocalProvisioningInfo, devices: { deviceId: string }[]) {
   return devices.some((device) => device.deviceId === hub.deviceKey);
+}
+
+function hubMatchesSetupType(hub: LocalProvisioningInfo, setupType: SetupType) {
+  const label = `${hub.productName ?? ""} ${hub.setupSsid ?? ""} ${hub.deviceKey}`.toLowerCase();
+  const isShield = label.includes("shield") || label.includes("vest");
+  return setupType === "dorashield" ? isShield : !isShield;
 }
 
 const SETUP_COPY = {
@@ -175,11 +185,21 @@ export default function DeviceSetupScreen() {
   const [stepIndex, setStepIndex] = useState(0);
   const [phase, setPhase] = useState<SetupPhase>("guide");
   const [nearbyHubs, setNearbyHubs] = useState<LocalProvisioningInfo[]>([]);
+  const [elderName, setElderName] = useState("");
+  const [selectedHub, setSelectedHub] = useState<LocalProvisioningInfo | null>(null);
+  const [wifiNetworks, setWifiNetworks] = useState<WifiNetwork[]>([]);
+  const [wifiSsid, setWifiSsid] = useState("");
+  const [wifiPassword, setWifiPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [wifiScanError, setWifiScanError] = useState<string | null>(null);
+  const [showWifiModal, setShowWifiModal] = useState(false);
   const { selectedHomeId } = useSelectedHome();
   const devicesQuery = useDevicesScreenQuery(selectedHomeId);
   const pairedDevices = devicesQuery.data?.devices ?? [];
   const discoverLocalHubsMutation = useDiscoverLocalHubsMutation();
   const pairLocalDeviceMutation = usePairLocalDeviceMutation();
+  const scanLocalWifiNetworksMutation = useScanLocalWifiNetworksMutation();
+  const provisionLocalWifiMutation = useProvisionLocalWifiMutation();
   const isLastStep = stepIndex === copy.steps.length - 1;
 
   useEffect(() => {
@@ -198,17 +218,13 @@ export default function DeviceSetupScreen() {
     setNearbyHubs([]);
     setPhase("searching");
 
-    if (setupType === "dorashield") {
-      await new Promise((resolve) => setTimeout(resolve, 2600));
-      setPhase("not-found");
-      return;
-    }
-
     try {
       const result = await devicesQuery.refetch();
       const currentPairedDevices = result.data?.devices ?? pairedDevices;
       const hubs = await discoverLocalHubsMutation.mutateAsync();
-      const unpairedHubs = hubs.filter((hub) => !isAlreadyPairedHub(hub, currentPairedDevices));
+      const unpairedHubs = hubs.filter(
+        (hub) => hubMatchesSetupType(hub, setupType) && !isAlreadyPairedHub(hub, currentPairedDevices)
+      );
       setNearbyHubs(unpairedHubs);
       setPhase(unpairedHubs.length > 0 ? "found" : "not-found");
     } catch {
@@ -230,7 +246,72 @@ export default function DeviceSetupScreen() {
     void startPairingSearch();
   };
 
-  const pairHub = async (hub: LocalProvisioningInfo) => {
+  const openShieldWifiSetup = async (hub: LocalProvisioningInfo) => {
+    setSelectedHub(hub);
+    setWifiSsid(hub.wifiSsid ?? "");
+    setWifiPassword("");
+    setWifiNetworks([]);
+    setWifiScanError(null);
+    setShowWifiModal(true);
+    try {
+      const networks = await scanLocalWifiNetworksMutation.mutateAsync(hub.ipAddress);
+      setWifiNetworks(networks);
+      if (!hub.wifiSsid && networks[0]?.ssid) setWifiSsid(networks[0].ssid);
+    } catch {
+      setWifiScanError("Connect this phone to the DoraShield setup Wi-Fi, then refresh.");
+    }
+  };
+
+  const rescanShieldWifi = async () => {
+    if (!selectedHub) return;
+    setWifiScanError(null);
+    try {
+      const networks = await scanLocalWifiNetworksMutation.mutateAsync(selectedHub.ipAddress);
+      setWifiNetworks(networks);
+      if (!wifiSsid && networks[0]?.ssid) setWifiSsid(networks[0].ssid);
+    } catch {
+      setWifiScanError("Unable to scan networks. Make sure this phone is connected to DoraShield setup Wi-Fi.");
+    }
+  };
+
+  const submitShieldWifi = async () => {
+    if (!selectedHub || !wifiSsid.trim()) {
+      Toast.show({ type: "error", text1: "Choose Wi-Fi first" });
+      return;
+    }
+    try {
+      await provisionLocalWifiMutation.mutateAsync({
+        ipAddress: selectedHub.ipAddress,
+        payload: { ssid: wifiSsid.trim(), password: wifiPassword },
+      });
+      setShowWifiModal(false);
+      Toast.show({ type: "success", text1: "Wi-Fi sent", text2: "Pairing DoraShield now." });
+      await pairHub(selectedHub, true);
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Wi-Fi setup failed",
+        text2: "Check the password and DoraShield setup connection.",
+      });
+    }
+  };
+
+  const pairHub = async (hub: LocalProvisioningInfo, skipShieldWifi = false) => {
+    if (setupType === "dorashield" && !skipShieldWifi) {
+      await openShieldWifiSetup(hub);
+      return;
+    }
+
+    const trimmedElderName = elderName.trim();
+    if (!trimmedElderName) {
+      Toast.show({
+        type: "error",
+        text1: "Elder name required",
+        text2: "Add the elder's preferred name before pairing.",
+      });
+      return;
+    }
+
     try {
       const latestDevices = (await devicesQuery.refetch()).data?.devices ?? pairedDevices;
       if (isAlreadyPairedHub(hub, latestDevices)) {
@@ -246,8 +327,8 @@ export default function DeviceSetupScreen() {
         deviceKey: hub.deviceKey,
         pairingToken: hub.pairingToken,
         localIp: hub.ipAddress,
-        elderName: "Eldora User",
-        deviceName: "DoraBot",
+        elderName: trimmedElderName,
+        deviceName: setupType === "dorashield" ? "DoraShield" : "DoraBot",
         homeId: selectedHomeId,
         batteryLevel: hub.batteryLevel ?? undefined,
         isCharging: hub.isCharging,
@@ -368,11 +449,27 @@ export default function DeviceSetupScreen() {
               <X size={36} color={COLORS.text} strokeWidth={2.2} />
             </Pressable>
             <Text className="mt-12 text-[28px] font-extrabold leading-9" style={{ color: COLORS.text }}>
-              Choose DoraBot
+              Choose {copy.product}
             </Text>
             <Text className="mt-4 text-[17px] font-medium leading-7" style={{ color: COLORS.muted }}>
-              Select the DoraBot found on this Wi-Fi network to finish pairing.
+              Select the {copy.product} found on this Wi-Fi network to finish pairing.
             </Text>
+            <View className="mt-6 rounded-[24px] border bg-white px-5 py-4" style={{ borderColor: COLORS.line }}>
+              <Text className="text-[13px] font-extrabold uppercase tracking-[1.2px]" style={{ color: COLORS.muted }}>
+                Elder preferred name
+              </Text>
+              <TextInput
+                className="mt-3 text-[18px] font-bold"
+                style={{ color: COLORS.text }}
+                value={elderName}
+                onChangeText={setElderName}
+                placeholder="e.g. Pak Budi"
+                placeholderTextColor={COLORS.disabled}
+                autoCapitalize="words"
+                autoComplete="name"
+                accessibilityLabel="Elder preferred name"
+              />
+            </View>
           </View>
           <ScrollView className="mt-5 flex-1" showsVerticalScrollIndicator={false}>
             {nearbyHubs.map((hub) => (
@@ -383,6 +480,25 @@ export default function DeviceSetupScreen() {
               />
             ))}
           </ScrollView>
+          <WifiConfigModal
+            visible={showWifiModal}
+            title="Connect DoraShield to home Wi-Fi"
+            targetIp={selectedHub?.ipAddress ?? null}
+            showWifiPicker
+            wifiNetworks={wifiNetworks}
+            isScanningWifi={scanLocalWifiNetworksMutation.isPending}
+            wifiScanError={wifiScanError}
+            ssid={wifiSsid}
+            password={wifiPassword}
+            showPassword={showPassword}
+            isSendingWifi={provisionLocalWifiMutation.isPending || pairLocalDeviceMutation.isPending}
+            onClose={() => setShowWifiModal(false)}
+            onRescan={rescanShieldWifi}
+            onSelectNetwork={setWifiSsid}
+            onPasswordChange={setWifiPassword}
+            onTogglePassword={() => setShowPassword((value) => !value)}
+            onSubmit={submitShieldWifi}
+          />
         </View>
       </SafeAreaView>
     );

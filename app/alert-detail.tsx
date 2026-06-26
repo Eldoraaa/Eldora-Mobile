@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Bell, MapPin, ShieldAlert } from "lucide-react-native";
 import { ScreenHeader } from "@/components/navigation/ScreenHeader";
 import { COLORS } from "@/constants/theme";
@@ -80,6 +80,7 @@ export default function AlertDetailScreen() {
   const resolvedAt = asString(metadata.resolvedAt);
   const occurredAt = asString(metadata.occurredAt);
   const confidence = asNumber(metadata.confidence);
+  const reminderId = asString(metadata.reminderId);
   const location = getLocationLabel(metadata.location);
   const isCritical = severity === "critical" || notification?.type === "alarm";
 
@@ -170,6 +171,17 @@ export default function AlertDetailScreen() {
             {notification.home ? <DetailRow label="Home" value={notification.home.name} /> : null}
             {sound ? <DetailRow label="Alert sound" value={formatMetadataLabel(sound)} /> : null}
           </View>
+
+          {eventType === "elder_voice_reminder_created" ? (
+            <TouchableOpacity
+              className="mt-7 h-14 items-center justify-center rounded-[16px]"
+              style={{ backgroundColor: COLORS.coral }}
+              activeOpacity={0.82}
+              onPress={() => router.push((reminderId ? `/reminder-detail?id=${reminderId}` : "/reminders") as never)}
+            >
+              <Text className="text-[15px] font-extrabold text-white">View DoraBot reminders</Text>
+            </TouchableOpacity>
+          ) : null}
 
           {location ? (
             <View className="mt-7 flex-row items-center rounded-[18px] px-4 py-3" style={{ backgroundColor: COLORS.surfaceMuted }}>

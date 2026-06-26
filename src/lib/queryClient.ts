@@ -32,6 +32,11 @@ export const queryKeys = {
     detail: (sceneId?: string | null) =>
       ["scenes", "detail", sceneId ?? "default"] as const,
   },
+  voice: {
+    reminders: (homeId?: string | null) => ["voice", "reminders", homeId ?? "default"] as const,
+    reminder: (reminderId?: string | null) => ["voice", "reminder", reminderId ?? "default"] as const,
+    memoryFacts: (status = "candidate") => ["voice", "memory-facts", status] as const,
+  },
 };
 
 export const queryClient = new QueryClient({

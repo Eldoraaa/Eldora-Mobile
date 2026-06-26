@@ -38,12 +38,12 @@ export const useAuthStore = create<AuthState>()(
         typeof window === "undefined" ? memoryStorage : AsyncStorage
       ),
       partialize: (state) => ({ token: state.token, user: state.user }),
-      onRehydrateStorage: () => (_state, error) => {
+      onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.warn("[AuthStore] Failed to rehydrate auth state:", error);
         }
 
-        useAuthStore.setState({ isHydrated: true });
+        state?.setHydrated();
       },
     }
   )

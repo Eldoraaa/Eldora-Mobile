@@ -22,4 +22,5 @@ export const ENDPOINTS = {
   NOTIFICATION_PREFERENCES: "/notifications/preferences",
   SCENES: "/scenes",
   VOICE_TEST_SPEAK: "/voice/test-speak",
+  VOICE_REMINDERS: "/voice/reminders",
 } as const;
